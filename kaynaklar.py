@@ -64,6 +64,11 @@ async def resmi_gazete_fihrist(tarih: str, mukerrer: int = 0, ikincil_kaynak: bo
     except (httpx.HTTPError,LookupError) as exc:
         if not ikincil_kaynak or mukerrer:
             raise RuntimeError(f"Resmî fihrist doğrulanamadı: {url} ({type(exc).__name__})") from exc
+    return await lexpera_fihrist(tarih)
+
+
+async def lexpera_fihrist(tarih):
+    url = RG + "/fihrist?tarih=" + tarih
     # Yalnızca başlığındaki yayın günü istenen tarihle eşleşen listeyi kullan.
     secondary = "https://www.lexpera.com.tr/resmi-gazete"
     soup = BeautifulSoup((await fetch(secondary)).content,"html.parser")

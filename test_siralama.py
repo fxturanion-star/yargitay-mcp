@@ -38,3 +38,24 @@ class EvidenceTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(result["alinti_dogrulandi"])
                     self.assertTrue(result["hukuki_degerlendirme_dogrulanmadi"])
                     self.assertFalse(result["pasaj_sahibi_dogrulandi"])
+
+    async def test_unreadable_header_with_warm_cache(self):
+        card = {"id":"bedesten:1","daire":"1. Ceza Dairesi","esas_no":"2022/1","karar_no":"2024/2"}
+        for text in ("İçtihat Metni. Başka karara atıf: 1. Ceza Dairesi 2022/1 E., 2024/2 K.",
+                     "1. Ceza Dairesi 2022/1 E.", "1. Ceza Dairesi 2022/7-1 E., 2024/2 K."):
+            with self.subTest(text=text), patch.object(bedesten, "_kunyeler", {card["id"]:card}):
+                result, status = await bedesten.resolve_card(card["id"], text)
+                self.assertEqual(result, {})
+                self.assertNotIn("E./K. doğrulandı", status)
+
+    async def test_quote_integrity_and_location(self):
+        text = "Çoğunluk: Ortak cümle. Delil yeterli. Karşıoy: Ortak cümle. Delil yetersiz."
+        with patch.object(server, "_fetch_doc_text", AsyncMock(return_value=text)):
+            async with Client(server.mcp) as c:
+                for quote, count in [("Ortak cümle.", 2), ("Delil yetersiz.", 1), ("Delil yeterli. Delil yetersiz.", 0)]:
+                    out = (await c.call_tool("emsal_dogrula", {"karar_id":"bedesten:1",
+                        "onerme":"Delilin yeterliliği", "alinti":quote})).data
+                    self.assertEqual(out["alinti_eslesme_sayisi"], count)
+                    self.assertEqual(out["alinti_dogrulandi"], count > 0)
+                    self.assertEqual("alinti_baglami" in out, count == 1)
+                    self.assertFalse(out["pasaj_sahibi_dogrulandi"])

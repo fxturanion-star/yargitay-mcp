@@ -112,7 +112,8 @@ async def _search_judgments(query):
             "kararlar": results, "kaynak": "Adalet Bakanlığı Bedesten / Yargıtay"}
     if latest:
         result.update(siralama="karar tarihi azalan", kapsamin_son_gunu=params["kararTarihiEnd"][:10],
-                      kapsam="Bedesten indeksinde sorgu anında yayımlanmış eşleşmeler")
+                      kapsam="Bedesten indeksinde sorgu anında yayımlanmış eşleşmeler",
+                      tarih_olcutu="karar_tarihi", indekse_eklenme_sirasi_dogrulandi=False)
     return result
 
 
@@ -212,7 +213,7 @@ async def resolve_card(identifier, text):
         text[:350], re.I)
     card = _kunyeler.get(identifier)
     if not header:
-        return card or {}, "metin başlığı doğrulanamadı"
+        return {}, "metin başlığı doğrulanamadı"
     court, case, decision = header.groups()
     if card is None:
         year, serial = decision.split("/")
@@ -227,8 +228,8 @@ async def resolve_card(identifier, text):
             return {}, "resmî aramada aynı belge kimliği tekil olarak doğrulanamadı"
         card = matches[0]
     # Eski CGK başlıklarında 2011/6-245, indekste 2011/245 olarak gösterilebilir.
-    short_case = re.sub(r"/\d+-", "/", case)
-    if (card["daire"].casefold() != court.casefold() or card["karar_no"] != decision
+    short_case = re.sub(r"/\d+-", "/", case) if court.casefold() == "ceza genel kurulu" else case
+    if (card["id"] != identifier or card["daire"].casefold() != court.casefold() or card["karar_no"] != decision
             or card["esas_no"] not in (case, short_case)):
         return {}, "resmî metin başlığı ve arama künyesi uyuşmuyor"
     return card, "belge kimliği, daire ve E./K. doğrulandı"

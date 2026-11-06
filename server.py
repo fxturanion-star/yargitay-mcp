@@ -207,7 +207,7 @@ async def yargitay_karar_ara(
     en_yeni: bool = False,
 ) -> dict:
     """Bedesten’de Yargıtay künyelerini ara. Kesin ifadeyi çift tırnağa al. Tarihler GG.AA.YYYY;
-    En güncel kararlar için en_yeni=true, sayfa=1 ve boyut 1–20 kullan. Kesin sıra numarası için iki sınırı eşit ver. Sayfa boyutu 1–100. Metin için seçilen id’yi kullan."""
+    Karar tarihi en yeni olanlar için en_yeni=true; indekse eklenme sırası doğrulanamıyor. Bu modda sayfa=1 ve boyut 1–20 kullan. Kesin sıra numarası için iki sınırı eşit ver. Sayfa boyutu 1–100. Metin için seçilen id’yi kullan."""
     return await _do_search(
         aranan_kelime, daire, esas_yil, esas_ilk_sira_no, esas_son_sira_no,
         karar_yil, karar_ilk_sira_no, karar_son_sira_no,

@@ -117,7 +117,15 @@ def register(mcp, fetch_yargitay):
                          ("daire","esas_no","karar_no","karar_tarihi","basvuru_no","ad")}}
 
         quote = " ".join(alinti.split())
-        info["alinti_dogrulandi"] = bool(quote and quote in source_text)
+        if quote:
+            count = source_text.count(quote)
+            info.update(alinti_dogrulandi=count > 0, alinti_eslesme_sayisi=count)
+            if count == 1:
+                start = source_text.index(quote)
+                end = start + len(quote)
+                info["alinti_baglami"] = {"once":source_text[max(0,start-200):start],
+                                         "sonra":source_text[end:end+200]}
+
         if not source_text:
             return {**info,"durum":"doğrulanamadı","neden":"Karar metni alınamadı."}
         if degerlendirme is None:

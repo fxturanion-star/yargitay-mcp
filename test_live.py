@@ -1,6 +1,7 @@
 """Canlı MCP denetimi: python test_live.py YYYY-MM-DD (erişilebilir RG sayısı)."""
 import asyncio
 import sys
+import kaynaklar
 from datetime import date
 
 from fastmcp import Client
@@ -20,11 +21,21 @@ async def audit(client, issue):
     assert "Ceza Genel Kurulu" in (await call("yargitay_daire_listesi"))["daireler"]
     assert (await call("yargitay_baglanti_testi"))["ilk"]
     # Bilinen bir resmî belgeyi süreç başlangıcında, önce aramadan çöz.
-    cold = await call("emsal_dogrula", karar_id="bedesten:75719900", onerme="Karar künyesini incele")
-    assert cold["kunye"]["karar_no"] == "2012/61" and "E./K. doğrulandı" in cold["kunye_durumu"]
-    print("Soğuk künye:", cold["kunye"], flush=True)
+    samples = [
+        ("75719900", "Ceza Genel Kurulu", "2011/245", "2012/61", "28.02.2012"),
+        ("109227200", "4. Hukuk Dairesi", "2014/15489", "2015/12166", "02.11.2015"),
+        ("631834100", "9. Hukuk Dairesi", "2020/9097", "2021/848", "14.01.2021"),
+        ("1018167800", "1. Ceza Dairesi", "2022/8669", "2024/1416", "04.03.2024"),
+    ]
+    for identifier, court, case, decision, day in samples:
+        cold = await call("emsal_dogrula", karar_id="bedesten:"+identifier, onerme="Karar künyesini incele")
+        actual = cold["kunye"]
+        assert (actual["daire"], actual["esas_no"], actual["karar_no"], actual["karar_tarihi"]) == (court, case, decision, day)
+        assert "E./K. doğrulandı" in cold["kunye_durumu"]
+        print("Künye:", identifier, actual, flush=True)
     for court in ("Ceza Genel Kurulu", "1. Ceza Dairesi"):
         newest = await call("yargitay_karar_ara", daire=court, sayfa_boyutu=3, en_yeni=True)
+        assert newest["tarih_olcutu"] == "karar_tarihi" and newest["indekse_eklenme_sirasi_dogrulandi"] is False
         assert len(newest["kararlar"]) == 3 and all(row["daire"] == court for row in newest["kararlar"])
         print(court, [(row["karar_tarihi"], row["karar_no"]) for row in newest["kararlar"]], flush=True)
     search = await call("yargitay_karar_ara", daire="Ceza Genel Kurulu", sayfa_boyutu=1)
@@ -50,10 +61,6 @@ async def audit(client, issue):
     item = decisions["sonuclar"][0]
     para = await call("aym_paragraf_getir", karar_id=item["basvuru_no"], paragraf_no=1)
     assert para["id"] == item["id"] and para["metin"].strip()
-    index = await call("resmi_gazete_fihrist", tarih=issue, ikincil_kaynak=True)
-    print("Fihrist kaynağı:", index["kaynak"], flush=True)
-    publication = await call("resmi_gazete_belgesi", belge=index["belgeler"][0]["belge"])
-    assert index["tarih"] == issue and publication["metin"].strip()
     judgments = await call("aihm_ara", ifade="reasonable suspicion", ulke="TUR", adet=1)
     item = judgments["sonuclar"][0]
     judgment = await call("aihm_karar_getir", karar_id=item["itemid"])
@@ -62,13 +69,35 @@ async def audit(client, issue):
     item = theses["sonuclar"][0]
     detail = await call("yoktez_detay", kayit=item["kayit"], belge=item["belge"])
     assert detail["trOzet"] or detail["enOzet"]
-    assert tested == {tool.name for tool in await client.list_tools()}
+    assert tested | {"resmi_gazete_fihrist", "resmi_gazete_belgesi"} == {tool.name for tool in await client.list_tools()}
     print(f"{len(tested)} araç geçti.")
 
 
+async def audit_rg(client, day, secondary):
+    # İki bağımsız çağrı: bir kaynağın başarısı diğerinin erişimini maskelemez.
+    if secondary:
+        index = await kaynaklar.lexpera_fihrist(day)
+    else:
+        index = (await client.call_tool("resmi_gazete_fihrist",
+                 {"tarih":day,"ikincil_kaynak":False})).data
+    assert index["tarih"] == day and index["resmi_kaynak"] is (not secondary)
+    print("Fihrist:", index["kaynak"], flush=True)
+    item = index["belgeler"][0]
+    doc = (await client.call_tool("resmi_gazete_belgesi", {"belge":item["belge"]})).data
+    assert doc["resmi_kaynak"] is (not secondary) and doc["kaynak"] == item["kaynak"] and doc["metin"].strip()
+    print("Belge:", doc["kaynak"], "karakter:", len(doc["metin"]), flush=True)
+
+
 async def main():
+    day = sys.argv[1] if len(sys.argv) > 1 else date.today().isoformat()
+    mode = sys.argv[2] if len(sys.argv) > 2 else "core"
     async with Client(mcp) as client:
-        await audit(client, sys.argv[1] if len(sys.argv) > 1 else date.today().isoformat())
+        if mode == "core":
+            await audit(client, day)
+        elif mode in ("resmi", "lexpera"):
+            await audit_rg(client, day, secondary=mode == "lexpera")
+        else:
+            raise ValueError("Test modu core, resmi veya lexpera olmalı.")
 
 
 if __name__ == "__main__":
