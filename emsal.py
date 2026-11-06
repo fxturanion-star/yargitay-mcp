@@ -3,6 +3,8 @@ import re
 import uuid
 from typing import Literal
 
+import bedesten
+import upstream
 import httpx
 from bs4 import BeautifulSoup
 
@@ -13,11 +15,12 @@ _role = Literal["mahkemenin gerekçesi", "taraf iddiası", "tebliğname", "karş
 
 async def _records(params):
     async with httpx.AsyncClient(timeout=httpx.Timeout(25, connect=8)) as client:
-        response = await client.post(AYM + "/api/core/public/search",
+        response = await upstream.request(client, "POST", AYM + "/api/core/public/search",
                                      json={"kararTipi":"BireyselBasvuru", **params})
         response.raise_for_status()
         payload = response.json()
-    if not isinstance(payload.get("data"), list):
+    if (not isinstance(payload, dict) or not isinstance(payload.get("data"), list)
+            or any(not isinstance(row, dict) or not row.get("id") for row in payload["data"])):
         raise ValueError("AYM sonuç listesi doğrulanamadı.")
     return payload
 
@@ -56,7 +59,7 @@ def _paras(html):
     items = {}
     blocks = BeautifulSoup(html,"html.parser").find_all("p")
     lines = [" ".join(p.get_text().split()) for p in blocks]
-    start = next((i for i, line in enumerate(lines) if "BAŞVURUNUN KONUSU" in line), 0)
+    start = next((i for i, line in enumerate(lines) if "BAŞVURUNUN KONUSU" in line), len(lines))
     for p, line in zip(blocks[start:], lines[start:]):
         # Word biçimli kararlarda numaralı alt başlıklar da kalın yazılabilir.
         fragments = [v for v in p.find_all(string=True) if v.strip()]
@@ -101,9 +104,17 @@ def register(mcp, fetch_yargitay):
         else:
             if paragraf_no is not None:
                 raise ValueError("Yargıtay için kaynaksız paragraf numarası kullanılamaz.")
-            doc = await fetch_yargitay(karar_id)
+            doc = await fetch_yargitay(karar_id, karakter_sayisi=None)
         source_text = " ".join((doc.get("metin") or "").split())
-        info = {"onerme":onerme,"karar_id":karar_id,"kaynak":doc.get("kaynak"),"paragraf":paragraf_no}
+        card = doc if mahkeme == "AYM" else bedesten._kunyeler.get(karar_id, {})
+        info = {"onerme":onerme,"karar_id":karar_id,"mahkeme":mahkeme,"kaynak":doc.get("kaynak"),
+                "paragraf":paragraf_no, "alinti_dogrulandi":False,
+                "hukuki_degerlendirme_dogrulanmadi":True, "pasaj_sahibi_dogrulandi":False,
+                "kunye":{key:card.get(key) for key in
+                         ("daire","esas_no","karar_no","karar_tarihi","basvuru_no","ad")}}
+
+        quote = " ".join(alinti.split())
+        info["alinti_dogrulandi"] = bool(quote and quote in source_text)
         if not source_text:
             return {**info,"durum":"doğrulanamadı","neden":"Karar metni alınamadı."}
         if degerlendirme is None:
@@ -112,10 +123,9 @@ def register(mcp, fetch_yargitay):
             return {**info,"durum":"inceleme","metin":source_text[baslangic:baslangic+16000],
                     "sonraki_baslangic":baslangic+16000 if baslangic+16000<len(source_text) else None,
                     "talimat":"Kararı ve konuşanı belirle. Destek derecesini, kaynaktan alıntıyı ve gerekçeni bu araca gönder."}
-        quote = " ".join(alinti.split())
         if mahkeme=="AYM" and paragraf_no is None:
             raise ValueError("AYM atfını doğrulamak için kaynak paragraf numarası gereklidir.")
-        if not quote or quote not in source_text or not gerekce.strip() or not pasaj_sahibi:
+        if not info["alinti_dogrulandi"] or not gerekce.strip() or not pasaj_sahibi:
             return {**info,"durum":"doğrulanamadı","neden":"Birebir alıntı, pasaj sahibi ve gerekçe doğrulama için gerekli."}
         return {**info,"alinti_kaynakta":True,"alinti":quote,"istemci_degerlendirmesi":degerlendirme,
                 "istemcinin_belirledigi_pasaj_sahibi":pasaj_sahibi,"gerekce":gerekce}

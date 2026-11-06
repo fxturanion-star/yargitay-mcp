@@ -44,8 +44,8 @@ class AuditTests(unittest.IsolatedAsyncioTestCase):
             kaynaklar.page("belge", 5)
 
     async def test_cooldown_and_invalid_content(self):
-        with patch.object(bedesten, "_blocked_until", bedesten.time.monotonic() + 60):
-            with self.assertRaisesRegex(RuntimeError, "istek sınırı"):
+        with patch.object(bedesten.upstream.gates["bedesten.adalet.gov.tr"], "blocked_until", bedesten.upstream.time.monotonic() + 60):
+            with self.assertRaisesRegex(bedesten.httpx.RequestError, "sonra deneyin"):
                 await bedesten.request("/test", {})
         with patch.object(bedesten, "request", AsyncMock(return_value={"content": "%%"})):
             with self.assertRaisesRegex(ValueError, "kodlaması"):

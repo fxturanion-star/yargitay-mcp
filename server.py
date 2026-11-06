@@ -9,6 +9,11 @@ from typing import Any
 from fastmcp import FastMCP
 import bedesten
 import kanun
+import sys
+import erisim
+import upstream
+from cachetools import TTLCache
+from fastmcp.server.middleware.rate_limiting import RateLimitingMiddleware
 from metin import sayfali_belge
 
 # Geçerli daire adları (birimYrgKurulDaire alanı için)
@@ -19,7 +24,9 @@ DAIRELER: list[str] = (
     + [f"{i}. Ceza Dairesi" for i in range(1, 24)]
 )
 
+_auth = erisim.token_verifier()
 mcp = FastMCP(
+    auth=_auth,
     name="Yargıtay Karar Arama",
     instructions=(
         "Adalet Bakanlığı Bedesten üzerinde Yargıtay kararı arar ve karar "
@@ -31,14 +38,18 @@ mcp = FastMCP(
 )
 
 
+mcp.add_middleware(RateLimitingMiddleware(max_requests_per_second=5, burst_capacity=60, global_limit=True))
+mcp.tool(upstream.kaynak_durumu)
+
 # Karar metni önbelleği (id -> düz metin). Aynı oturumda tekrar istenen
 # kararlar siteye gidilmeden döner.
 _CACHE_MAX = int(os.environ.get("YARGITAY_CACHE_MAX", "500"))
-_doc_cache: dict[str, str] = {}
+_cache_bytes = int(os.environ.get("YARGITAY_CACHE_BYTES", 16 * 1024 * 1024))
+_doc_cache = TTLCache(maxsize=max(0, _cache_bytes), ttl=300, getsizeof=sys.getsizeof)
 
 
 def _cache_put(karar_id: str, text: str) -> None:
-    if _CACHE_MAX <= 0:
+    if _CACHE_MAX <= 0 or sys.getsizeof(text) > _cache_bytes:
         return
     if karar_id not in _doc_cache and len(_doc_cache) >= _CACHE_MAX:
         _doc_cache.pop(next(iter(_doc_cache)))
@@ -256,9 +267,9 @@ async def yargitay_toplu_arastirma(
 
 
 @mcp.tool
-async def yargitay_karar_metni(karar_id: str, baslangic: int = 0, karakter_sayisi: int | None = None) -> dict:
+async def yargitay_karar_metni(karar_id: str, baslangic: int = 0, karakter_sayisi: int | None = 4000) -> dict:
     """Aramadan seçilen id ile karar metnini oku. İlk incelemede karakter_sayisi=4000 kullan;
-    sonraki_baslangic ile devam et. Sınır verilmezse tam metin döner."""
+    sonraki_baslangic ile devam et. Varsayılan 4000; tam metin için karakter_sayisi=null."""
     karar_id = str(karar_id).strip()
     if not re.fullmatch(r"(?:bedesten:)?[0-9]{1,20}", karar_id):
         raise ValueError("karar_id sayısal bir kimlik olmalıdır (arama sonucundaki 'id').")
@@ -315,7 +326,7 @@ if __name__ == "__main__":
     else:
         mcp.run(
             transport="http",
-            host="0.0.0.0",
+            host=erisim.http_host(_auth is not None),
             port=int(os.environ.get("PORT", "8000")),
             path=os.environ.get("MCP_PATH", "/mcp"),
         )

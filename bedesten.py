@@ -2,51 +2,29 @@
 import asyncio
 import base64
 import binascii
-import math
-from email.utils import parsedate_to_datetime
-import time
 from datetime import datetime, timezone
 
 import httpx
 from bs4 import BeautifulSoup
+from cachetools import TTLCache
+import upstream
 
 BASE = "https://bedesten.adalet.gov.tr"
 SITE = "https://mevzuat.adalet.gov.tr"
-_lock = asyncio.Lock()
-_last_request = 0.0
-_blocked_until = 0.0
-
-
-def _retry_seconds(header):
-    if header and header.isascii() and header.isdigit():
-        return max(1, int(header))
-    if header:
-        try:
-            return max(1, math.ceil(parsedate_to_datetime(header).timestamp() - time.time()))
-        except (ValueError, TypeError, OverflowError):
-            pass
-    return 60
+_kunyeler = TTLCache(maxsize=1000, ttl=900)
+_searches = TTLCache(maxsize=64, ttl=60)
+_search_locks = [asyncio.Lock() for _ in range(16)]
 
 
 async def request(path, data, paging=False):
-    global _last_request, _blocked_until
     body = {"data": data}
     if paging:
         body["paging"] = True
-    async with _lock:
-        remaining = _blocked_until - time.monotonic()
-        if remaining > 0:
-            raise RuntimeError(f"Bedesten istek sınırı: {math.ceil(remaining)} saniye sonra deneyin.")
-        await asyncio.sleep(max(0, 3 - (time.monotonic() - _last_request)))
-        _last_request = time.monotonic()
-        async with httpx.AsyncClient(timeout=httpx.Timeout(25, connect=6)) as client:
-            response = await client.post(BASE + path, json=body)
-        if response.status_code == 429:
-            delay = _retry_seconds(response.headers.get("Retry-After"))
-            _blocked_until = time.monotonic() + delay
-            raise RuntimeError(f"Bedesten istek sınırı: {delay} saniye sonra deneyin.")
-        response.raise_for_status()
+    async with httpx.AsyncClient(timeout=httpx.Timeout(25, connect=6)) as client:
+        response = await upstream.request(client, "POST", BASE + path, json=body)
     payload = response.json()
+    if not isinstance(payload, dict) or not isinstance(payload.get("metadata", {}), dict):
+        raise ValueError("Bedesten yanıt şeması değişti.")
     if payload.get("metadata", {}).get("FMTY") == "ERROR":
         raise RuntimeError(str(payload["metadata"].get("FMTE", "Bedesten sorgu hatası")))
     if not isinstance(payload.get("data"), dict):
@@ -80,6 +58,16 @@ async def search_page(path, params, key):
 
 
 async def judgments(query):
+    cache_key = tuple(sorted(query.items()))
+    if any(isinstance(value, str) and len(value) > 2000 for value in query.values()):
+        raise ValueError("Arama alanı 2000 karakteri aşamaz.")
+    async with _search_locks[hash(cache_key) % len(_search_locks)]:
+        if cache_key not in _searches:
+            _searches[cache_key] = await _search_judgments(query)
+        return _searches[cache_key]
+
+
+async def _search_judgments(query):
     params = {"itemTypeList": ["YARGITAYKARARI"],
               "pageSize": query["pageSize"], "pageNumber": query["pageNumber"]}
     if query["aranan"].strip():
@@ -101,12 +89,18 @@ async def judgments(query):
     data = await search_page("/emsal-karar/searchDocuments", params, "emsalKararList")
     results = []
     for row in rows(data, "emsalKararList"):
+        fields = ("documentId", "birimAdi", "esasNo", "kararNo", "kararTarihiStr")
+        if not isinstance(row, dict) or any(row.get(k) is None for k in fields):
+            raise ValueError("Bedesten karar künyesi eksik.")
         doc = str(row["documentId"])
         results.append({"id": "bedesten:"+doc, "daire": row["birimAdi"], "esas_no": row["esasNo"],
                         "karar_no": row["kararNo"], "karar_tarihi": row["kararTarihiStr"],
                         "kaynak": f"{SITE}/ictihat/{doc}"})
-    return {"toplam_sonuc": data["total"], "sayfa": params["pageNumber"], "sayfa_boyutu": params["pageSize"],
+    for card in results:
+        _kunyeler[card["id"]] = card
+    result = {"toplam_sonuc": data["total"], "sayfa": params["pageNumber"], "sayfa_boyutu": params["pageSize"],
             "kararlar": results, "kaynak": "Adalet Bakanlığı Bedesten / Yargıtay"}
+    return result
 
 
 async def document(doc, law=False, article=False):

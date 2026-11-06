@@ -16,6 +16,7 @@ async def audit(client, issue):
         print(name, flush=True)
         return result.data
 
+    assert "Bedesten" in await call("kaynak_durumu")
     assert "Ceza Genel Kurulu" in (await call("yargitay_daire_listesi"))["daireler"]
     assert (await call("yargitay_baglanti_testi"))["ilk"]
     search = await call("yargitay_karar_ara", daire="Ceza Genel Kurulu", sayfa_boyutu=1)
@@ -41,7 +42,7 @@ async def audit(client, issue):
     item = decisions["sonuclar"][0]
     para = await call("aym_paragraf_getir", karar_id=item["basvuru_no"], paragraf_no=1)
     assert para["id"] == item["id"] and para["metin"].strip()
-    index = await call("resmi_gazete_fihrist", tarih=issue)
+    index = await call("resmi_gazete_fihrist", tarih=issue, ikincil_kaynak=True)
     publication = await call("resmi_gazete_belgesi", belge=index["belgeler"][0]["belge"])
     assert index["tarih"] == issue and publication["metin"].strip()
     judgments = await call("aihm_ara", ifade="reasonable suspicion", ulke="TUR", adet=1)

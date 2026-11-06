@@ -16,7 +16,8 @@ class BudgetTests(unittest.IsolatedAsyncioTestCase):
             async with Client(server.mcp) as client:
                 for tool, params in [("yargitay_karar_metni", {"karar_id": "bedesten:123"}),
                                      ("mevzuat_kanun_metni_getir", {"kanun": "CMK"})]:
-                    original = (await client.call_tool(tool, params)).data
+                    full = {**params, "karakter_sayisi": None} if tool == "yargitay_karar_metni" else params
+                    original = (await client.call_tool(tool, full)).data
                     self.assertEqual(original["metin"], text)
                     self.assertNotIn("sonraki_baslangic", original)
                     parts, start = [], 0

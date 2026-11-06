@@ -4,7 +4,7 @@ Yargıtay kararları Adalet Bakanlığının Bedesten indeksinden aranır. Arama
 
 ## Ek kaynaklar
 
-- `resmi_gazete_fihrist(tarih)` yayımları tarihli sayıdan getirir. Resmî erişim sağlanamazsa yalnızca tarihi eşleşen açık LEXPERA günlük listesi kullanılabilir. Çıktı ikincil kaynağı belirtir; yalnızca resmî kaynak için `ikincil_kaynak=false`. Mükerrer sayılar ayrı sorgulanır. `resmi_gazete_belgesi` fihristin verdiği belge koduyla metni getirir.
+- `resmi_gazete_fihrist(tarih)` yayımları tarihli sayıdan getirir. Resmî erişim sağlanamazsa yalnızca tarihi eşleşen açık LEXPERA günlük listesi kullanılabilir. Varsayılan yalnızca resmî kaynaktır. LEXPERA için açıkça `ikincil_kaynak=true` verin. Mükerrer sayılar ayrı sorgulanır. `resmi_gazete_belgesi` fihristin verdiği belge koduyla metni getirir.
 - `aihm_ara` HUDOC kararlarını koleksiyon, ülke, dil, başvuru no, ifade ve tarihle arar. `aihm_karar_getir` seçilen dil kaydının tam metnini sayfalayarak verir. İngilizce arama için ENG, Fransızca için FRE, kayıtlı Türkçe çeviriler için TUR.
 - `yoktez_ara` YÖK kataloğunda tez adı, yazar, danışman, konu, anahtar kelime, özet veya tez numarasıyla arar. `yoktez_detay` açık özet, atıf ve varsa YÖK'ün sunduğu PDF bağlantısını verir.
 ## Kurulum — Seçenek A: FastMCP Cloud (önerilen, kişisel kullanımda ücretsiz)
@@ -19,7 +19,8 @@ Yargıtay kararları Adalet Bakanlığının Bedesten indeksinden aranır. Arama
 
 ```bash
 docker build -t yargitay-mcp .
-docker run -p 8000:8000 yargitay-mcp
+# Kendi kimlik sağlayıcınızın RS256 ayarları jwt.env içinde olmalı.
+docker run --env-file jwt.env -e MCP_HOST=0.0.0.0 -p 127.0.0.1:8000:8000 yargitay-mcp
 # MCP adresi: http://<host>:8000/mcp  (HTTPS için ters proxy gerekir)
 ```
 
@@ -40,8 +41,8 @@ Ortam değişkenleri: `PORT` (varsayılan 8000), `MCP_PATH` (varsayılan `/mcp`)
 ```bash
 pip install -r requirements.txt
 python test_mock.py        # ağsız MCP arama → metin testi
-python -m unittest test_audit   # hata ve sınır durumları
-python test_live.py YYYY-MM-DD  # erişilebilir bir RG tarihiyle 20 aracın canlı testi
+python -m unittest discover   # hata ve sınır durumları
+python test_live.py YYYY-MM-DD  # erişilebilir bir RG tarihiyle 21 aracın canlı testi
 MCP_TRANSPORT=stdio python server.py   # stdio modunda (tek makine) çalıştırma
 ```
 
@@ -64,4 +65,4 @@ Kanun araması, madde ve tam metin araçları mevzuat.gov.tr erişim hatasında 
 
 ### Uzun belgeleri ekonomik okuma
 
-Tek madde için `mevzuat_madde_getir`, tek AYM paragrafı için `aym_paragraf_getir` kullanın. Yargıtay araştırmasında önce az sayıda künye isteyin. Kararı veya kanunu okumak için `yargitay_karar_metni` ve `mevzuat_kanun_metni_getir` araçlarına isteğe bağlı `karakter_sayisi` (1–20000) verilebilir. Örneğin ilk 4.000 karakter için `{"kanun":"CMK","karakter_sayisi":4000}` gönderin. Devamı gerektiğinde aynı parametrelerle yanıttaki `sonraki_baslangic` değerini `baslangic` olarak gönderin. Sayfaları birleştirirken her yanıtta aynı `metin_surumu` değerini arayın; değer değişirse metni baştan okuyun. Son sayfada `sonraki_baslangic` `null` olur. Parametresiz eski çağrılar tam metni verir. Toplu aramada `pencere` yalnızca bir pasaj gösterir; kararın bütününe dayalı değerlendirme için tam metne başvurun.
+Tek madde için `mevzuat_madde_getir`, tek AYM paragrafı için `aym_paragraf_getir` kullanın. Yargıtay araştırmasında önce az sayıda künye isteyin. Kararı veya kanunu okumak için `yargitay_karar_metni` ve `mevzuat_kanun_metni_getir` araçlarına isteğe bağlı `karakter_sayisi` (1–20000) verilebilir. Örneğin ilk 4.000 karakter için `{"kanun":"CMK","karakter_sayisi":4000}` gönderin. Devamı gerektiğinde aynı parametrelerle yanıttaki `sonraki_baslangic` değerini `baslangic` olarak gönderin. Sayfaları birleştirirken her yanıtta aynı `metin_surumu` değerini arayın; değer değişirse metni baştan okuyun. Son sayfada `sonraki_baslangic` `null` olur. Yargıtay kararı varsayılan 4.000 karakterlik sayfa döndürür; bütün karar için `karakter_sayisi=null` gönderin. Kanun aracının tam metin varsayılanı korunur. Toplu aramada `pencere` yalnızca bir pasaj gösterir; kararın bütününe dayalı değerlendirme için tam metne başvurun.

@@ -8,6 +8,7 @@ from typing import Literal
 from urllib.parse import urljoin, urlsplit
 from xml.etree import ElementTree as ET
 
+import upstream
 import httpx
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
@@ -30,9 +31,7 @@ def page(text, start):
 
 async def fetch(url, **kwargs):
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        response = await client.get(url, **kwargs)
-        response.raise_for_status()
-        return response
+        return await upstream.request(client, "GET", url, **kwargs)
 
 
 def rg_date(tarih):
@@ -41,7 +40,7 @@ def rg_date(tarih):
     return stamp, f"{RG}/eskiler/{day:%Y/%m}/"
 
 
-async def resmi_gazete_fihrist(tarih: str, mukerrer: int = 0, ikincil_kaynak: bool = True) -> dict:
+async def resmi_gazete_fihrist(tarih: str, mukerrer: int = 0, ikincil_kaynak: bool = False) -> dict:
     """Tarihli RG fihristi (YYYY-MM-DD). Resmî erişim başarısızsa isteğe bağlı, tarihi doğrulanmış LEXPERA listesi."""
     stamp, root = rg_date(tarih)
     if not 0 <= mukerrer <= 9:
@@ -156,6 +155,8 @@ async def aihm_karar_getir(karar_id: str, baslangic: int = 0) -> dict:
         raise ValueError("HUDOC itemid gereklidir.")
     r=await fetch(HUDOC+"/app/conversion/docx/",params={"library":"ECHR","id":karar_id,"filename":"decision.docx"})
     with zipfile.ZipFile(io.BytesIO(r.content)) as doc:
+        if doc.getinfo("word/document.xml").file_size > 24 * 1024 * 1024:
+            raise ValueError("HUDOC açılmış metin boyutu sınırı aşıldı.")
         xml=ET.fromstring(doc.read("word/document.xml"))
     ns="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
     text="\n".join("".join(t.text or "" for t in p.iter(ns+"t")) for p in xml.iter(ns+"p"))
@@ -169,8 +170,8 @@ async def yoktez_ara(ifade: str, alan: Literal["tümü","tez adı","yazar","dan�
         raise ValueError("En az üç karakter, pozitif sayfa ve 1–50 sonuç gerekir.")
     fields={"tez adı":1,"yazar":2,"danışman":3,"konu":4,"anahtar kelime":5,"özet":6,"tümü":7,"tez no":8}
     async with httpx.AsyncClient(timeout=TIMEOUT,follow_redirects=True) as client:
-        (await client.get(YOK)).raise_for_status()
-        r=await client.post(YOK+"SearchTez",data={"neden":ifade,"nevi":str(fields[alan]),"islem":"1","tur":"0","izin":"0"})
+        await upstream.request(client, "GET", YOK)
+        r=await upstream.request(client, "POST", YOK+"SearchTez",data={"neden":ifade,"nevi":str(fields[alan]),"islem":"1","tur":"0","izin":"0"})
         r.raise_for_status()
     soup=BeautifulSoup(r.content,"html.parser",from_encoding="utf-8")
     cards=soup.select(".result-card[data-kayitno][data-tezno]")
@@ -193,7 +194,12 @@ async def yoktez_ara(ifade: str, alan: Literal["tümü","tez adı","yazar","dan�
         rows.append({"tez_no":num[1],"baslik":title.get_text(" ",strip=True),"kayit":key,"belge":token,
                      "kunye":meta.get(card.get("data-index"),{}).get("meta",{}),
                      "kaynak":YOK+f"tezDetay.jsp?id={key}&no={token}"})
-    return {"kaynak_sayfasindaki_kayit":len(cards),"sayfa":sayfa,"sonuclar":rows}
+    count = soup.select_one(".result-count-text")
+    reported = re.search(r"([0-9.]+)\s+kayıt bulundu", count.get_text(" ", strip=True)) if count else None
+    total = int(reported[1].replace(".", "")) if reported else None
+    return {"kaynak_sayfasindaki_kayit":len(cards), "kaynakta_bildirilen_toplam":total,
+            "sonraki_sayfa":sayfa+1 if sayfa*adet < len(cards) else None,
+            "kapsam":"Kaynağın sunduğu sonuç kümesi", "sayfa":sayfa,"sonuclar":rows}
 
 
 async def yoktez_detay(kayit: str, belge: str) -> dict:
