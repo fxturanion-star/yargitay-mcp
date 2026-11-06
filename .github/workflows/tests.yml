@@ -77,6 +77,8 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
+      - name: Sabit model dosyalarını kalite deneyi öncesinde hazırla
+        run: python -c 'import semantik; semantik._model()'
       - run: python scripts/quality_compare.py --stage all
       - run: python scripts/candidate_eval.py
       - run: python scripts/semantic_eval.py
