@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source: [core, resmi, lexpera]
+        source: [core, resmi, lexpera, semantik]
     needs: offline
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.issue_date != '')
     runs-on: ubuntu-latest
@@ -45,6 +45,9 @@ jobs:
           RG_DATE: ${{ inputs.issue_date }}
           TEST_SOURCE: ${{ matrix.source }}
         run: python test_live.py "${RG_DATE:-$(TZ=Europe/Istanbul date +%F)}" "$TEST_SOURCE"
+      - name: Bağımsız semantik sıralama değerlendirmesi
+        if: ${{ !cancelled() && matrix.source == 'semantik' }}
+        run: python scripts/semantic_eval.py
       - name: Resmî Gazete ağ aşamalarını ölç
         if: failure() && matrix.source == 'resmi'
         env:

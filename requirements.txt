@@ -4,3 +4,6 @@ beautifulsoup4==4.15.0
 turk-hukuku-mevzuat-mcp==0.1.4
 pypdf==7.0.0
 cachetools==7.3.0
+numpy==2.5.4
+onnxruntime==1.31.1
+tokenizers==0.23.3

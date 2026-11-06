@@ -325,6 +325,9 @@ async def yargitay_baglanti_testi(surum_kontrolu: bool = False) -> dict:
 import kaynaklar
 kaynaklar.register(mcp)
 
+import semantik
+semantik.register(mcp, _do_search, _fetch_doc_text)
+
 import emsal
 emsal.register(mcp, yargitay_karar_metni)
 

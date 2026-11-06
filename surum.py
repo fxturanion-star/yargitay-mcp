@@ -9,7 +9,7 @@ import httpx
 ROOT = Path(__file__).resolve().parent
 REPO = "fxturanion-star/yargitay-mcp"
 FILES = ("bedesten.py", "emsal.py", "erisim.py", "hukuk_server.py", "kanun.py",
-         "kaynaklar.py", "main.py", "metin.py", "requirements.txt", "server.py", "surum.py", "upstream.py")
+         "kaynaklar.py", "main.py", "metin.py", "requirements.txt", "semantik.py", "server.py", "surum.py", "upstream.py")
 
 
 def checkout_commit():

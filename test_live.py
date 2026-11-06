@@ -2,6 +2,7 @@
 import asyncio
 import sys
 import kaynaklar
+import bedesten
 from datetime import date
 
 from fastmcp import Client
@@ -84,7 +85,8 @@ async def audit(client, issue):
     item = theses["sonuclar"][0]
     detail = await call("yoktez_detay", kayit=item["kayit"], belge=item["belge"])
     assert detail["trOzet"] or detail["enOzet"]
-    assert tested | {"resmi_gazete_fihrist", "resmi_gazete_belgesi"} == {tool.name for tool in await client.list_tools()}
+    other_jobs = {"resmi_gazete_fihrist", "resmi_gazete_belgesi", "semantik_ictihat_ara"}
+    assert tested | other_jobs == {tool.name for tool in await client.list_tools()}
     print(f"{len(tested)} araç geçti.")
 
 
@@ -103,16 +105,48 @@ async def audit_rg(client, day, secondary):
     print("Belge:", doc["kaynak"], "karakter:", len(doc["metin"]), flush=True)
 
 
+async def audit_semantic(client):
+    """Gerçek Bedesten sorgusu, model çıkarımı, bağımsız metin ve künye denetimi."""
+    report = (await client.call_tool("semantik_ictihat_ara", {
+        "soru":"Kolluğun kişisel kanaatiyle yapılan aramanın dayanağı nasıl incelenir?",
+        "arama_ifadeleri":['"makul şüphe"'], "aday_sayisi":2, "sonuc_sayisi":1})).data
+    assert report["kapsam"] and len(report["sonuclar"]) == 1
+    assert report["hukuki_uygunluk_dogrulandi"] is False and report["pasaj_sahibi_dogrulandi"] is False
+    result = report["sonuclar"][0]
+    assert "E./K. doğrulandı" in result["kunye_durumu"]
+    # Belgeyi semantik aracın kullandığı karar önbelleğine uğramadan yeniden oku.
+    source_id = result["id"].removeprefix("bedesten:")
+    assert source_id.isascii() and source_id.isdecimal()
+    original = await bedesten.document(source_id)
+    start, end = result["baslangic"], result["bitis"]
+    assert 0 <= start < end <= len(original)
+    assert result["pasaj"].strip() and original[start:end] == result["pasaj"]
+    assert result["kaynak"] == f"{bedesten.SITE}/ictihat/{source_id}"
+    assert -1.00001 <= result["benzerlik"] <= 1.00001
+    # Aynı daire ve kesin K. numarasıyla ayrı kaynak aramasında belge kimliği tekil olmalı.
+    year, sequence = result["karar_no"].split("/")
+    cards = (await client.call_tool("yargitay_karar_ara", {
+        "daire":result["daire"], "karar_yil":year, "karar_ilk_sira_no":sequence,
+        "karar_son_sira_no":sequence, "sayfa_boyutu":20})).data["kararlar"]
+    matches = [card for card in cards if card["id"] == result["id"]]
+    assert len(matches) == 1
+    for key in ("daire", "esas_no", "karar_no", "karar_tarihi"):
+        assert matches[0][key] == result[key]
+    print("Semantik kaynak ve pasaj doğrulandı:", result["kaynak"], start, end, flush=True)
+
+
 async def main():
     day = sys.argv[1] if len(sys.argv) > 1 else date.today().isoformat()
     mode = sys.argv[2] if len(sys.argv) > 2 else "core"
     async with Client(mcp) as client:
         if mode == "core":
             await audit(client, day)
+        elif mode == "semantik":
+            await audit_semantic(client)
         elif mode in ("resmi", "lexpera"):
             await audit_rg(client, day, secondary=mode == "lexpera")
         else:
-            raise ValueError("Test modu core, resmi veya lexpera olmalı.")
+            raise ValueError("Test modu core, resmi, lexpera veya semantik olmalı.")
 
 
 if __name__ == "__main__":

@@ -66,7 +66,8 @@ class ReviewTests(unittest.IsolatedAsyncioTestCase):
     async def test_schema(self):
         async with Client(server.mcp) as client:
             schema = {t.name:t.inputSchema for t in await client.list_tools()}
-            self.assertEqual(len(schema), 21)
+            self.assertEqual(len(schema), 22)
+            self.assertIn("soru", schema["semantik_ictihat_ara"]["required"])
             self.assertIs(schema["resmi_gazete_fihrist"]["properties"]["ikincil_kaynak"]["default"], False)
             self.assertEqual(schema["yargitay_karar_metni"]["properties"]["karakter_sayisi"]["default"], 4000)
 
