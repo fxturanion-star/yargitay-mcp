@@ -4,7 +4,7 @@ Yargıtay kararları Adalet Bakanlığının Bedesten indeksinden aranır. Arama
 
 ## Ek kaynaklar
 
-- `resmi_gazete_fihrist(tarih)` yayımları tarihli sayıdan getirir. Resmî erişim sağlanamazsa yalnızca tarihi eşleşen açık LEXPERA günlük listesi kullanılabilir. Varsayılan yalnızca resmî kaynaktır. LEXPERA için açıkça `ikincil_kaynak=true` verin. Mükerrer sayılar ayrı sorgulanır. `resmi_gazete_belgesi` fihristin verdiği belge koduyla metni getirir.
+- `resmi_gazete_fihrist(tarih)` normal sayılar için önce LEXPERA günlük listesini kullanır. Listenin tarihi uyuşmazsa hata verir. Eski tarihleri resmî arşivde aramak için `ikincil_kaynak=false` verin. Mükerrer sayılar resmî arşivden alınır. `resmi_gazete_belgesi` fihristin döndürdüğü kaynaktan belgeyi okur.
 - `aihm_ara` HUDOC kararlarını koleksiyon, ülke, dil, başvuru no, ifade ve tarihle arar. `aihm_karar_getir` seçilen dil kaydının tam metnini sayfalayarak verir. İngilizce arama için ENG, Fransızca için FRE, kayıtlı Türkçe çeviriler için TUR.
 - `yoktez_ara` YÖK kataloğunda tez adı, yazar, danışman, konu, anahtar kelime, özet veya tez numarasıyla arar. `yoktez_detay` açık özet, atıf ve varsa YÖK'ün sunduğu PDF bağlantısını verir.
 ## Kurulum — Seçenek A: FastMCP Cloud (önerilen, kişisel kullanımda ücretsiz)

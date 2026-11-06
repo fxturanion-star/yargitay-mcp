@@ -27,14 +27,14 @@ class ReleaseTests(unittest.IsolatedAsyncioTestCase):
         second = httpx.Response(200, text='<a href="20261106-1.htm">Yönetmelik</a>')
         fetch = AsyncMock(side_effect=[first, second])
         with patch.object(kaynaklar, "fetch", fetch):
-            result = await kaynaklar.resmi_gazete_fihrist("2026-11-06")
+            result = await kaynaklar.resmi_gazete_fihrist("2026-11-06", ikincil_kaynak=False)
         self.assertTrue(result["resmi_kaynak"])
         self.assertTrue(result["kaynak"].endswith("/eskiler/2026/11/20261106.htm"))
 
     async def test_timeout_does_not_trigger_second_request(self):
         fetch = AsyncMock(side_effect=httpx.ReadTimeout("Yanıt bekleme süresi doldu."))
         with patch.object(kaynaklar, "fetch", fetch), self.assertRaisesRegex(RuntimeError, "ReadTimeout"):
-            await kaynaklar.resmi_gazete_fihrist("2026-11-06")
+            await kaynaklar.resmi_gazete_fihrist("2026-11-06", ikincil_kaynak=False)
         self.assertEqual(fetch.await_count, 1)
 
     def test_docker_revision_marker_without_checkout(self):

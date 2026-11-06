@@ -49,7 +49,7 @@ class ReviewTests(unittest.IsolatedAsyncioTestCase):
     async def test_official_only_uses_no_secondary(self):
         fetch = AsyncMock(side_effect=httpx.ConnectError("offline"))
         with patch.object(kaynaklar, "fetch", fetch), self.assertRaisesRegex(RuntimeError, "fihrist"):
-            await kaynaklar.resmi_gazete_fihrist("2026-11-06")
+            await kaynaklar.resmi_gazete_fihrist("2026-11-06", ikincil_kaynak=False)
         self.assertEqual(fetch.await_count, 1)
 
     async def test_concurrent_identical_search_calls_source_once(self):
@@ -68,7 +68,7 @@ class ReviewTests(unittest.IsolatedAsyncioTestCase):
             schema = {t.name:t.inputSchema for t in await client.list_tools()}
             self.assertEqual(len(schema), 22)
             self.assertIn("soru", schema["semantik_ictihat_ara"]["required"])
-            self.assertIs(schema["resmi_gazete_fihrist"]["properties"]["ikincil_kaynak"]["default"], False)
+            self.assertIs(schema["resmi_gazete_fihrist"]["properties"]["ikincil_kaynak"]["default"], True)
             self.assertEqual(schema["yargitay_karar_metni"]["properties"]["karakter_sayisi"]["default"], 4000)
 
     def test_partial_auth_and_public_bind_fail_closed(self):

@@ -40,11 +40,13 @@ def rg_date(tarih):
     return stamp, f"{RG}/eskiler/{day:%Y/%m}/"
 
 
-async def resmi_gazete_fihrist(tarih: str, mukerrer: int = 0, ikincil_kaynak: bool = False) -> dict:
-    """Tarihli RG fihristi (YYYY-MM-DD). Resmî erişim başarısızsa isteğe bağlı, tarihi doğrulanmış LEXPERA listesi."""
+async def resmi_gazete_fihrist(tarih: str, mukerrer: int = 0, ikincil_kaynak: bool = True) -> dict:
+    """Tarihli RG fihristi (YYYY-MM-DD). Normal sayıda LEXPERA günlük listesi kullanılır. Resmî arşiv için ikincil_kaynak=false; mükerrer sayılar resmî arşivden alınır."""
     stamp, root = rg_date(tarih)
     if not 0 <= mukerrer <= 9:
         raise ValueError("Mükerrer sıra numarası 0–9 arasında olmalı.")
+    if ikincil_kaynak and not mukerrer:
+        return await lexpera_fihrist(tarih)
     issue = stamp + (f"M{mukerrer}" if mukerrer else "")
     archive = root + issue + ".htm"
     addresses = [archive] if mukerrer else [RG + "/fihrist?tarih=" + tarih, archive]
@@ -70,9 +72,7 @@ async def resmi_gazete_fihrist(tarih: str, mukerrer: int = 0, ikincil_kaynak: bo
         except httpx.RequestError as exc:
             reason = f"{type(exc).__name__}: {exc}"
             break
-    if not ikincil_kaynak or mukerrer:
-        raise RuntimeError(f"Resmî fihrist doğrulanamadı: {url} ({reason})")
-    return await lexpera_fihrist(tarih)
+    raise RuntimeError(f"Resmî fihrist doğrulanamadı: {url} ({reason})")
 
 
 async def lexpera_fihrist(tarih):

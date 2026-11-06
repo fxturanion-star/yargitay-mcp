@@ -93,7 +93,7 @@ async def audit(client, issue):
 async def audit_rg(client, day, secondary):
     # İki bağımsız çağrı: bir kaynağın başarısı diğerinin erişimini maskelemez.
     if secondary:
-        index = await kaynaklar.lexpera_fihrist(day)
+        index = (await client.call_tool("resmi_gazete_fihrist", {"tarih":day})).data
     else:
         index = (await client.call_tool("resmi_gazete_fihrist",
                  {"tarih":day,"ikincil_kaynak":False})).data
