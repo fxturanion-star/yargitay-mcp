@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "label_status": "agent_assisted_not_expert_validated",
+  "label_timing": "Questions and exact source spans fixed before selector/model evaluation; not a hidden benchmark.",
+  "provenance": "Three full texts supplied in /tmp/quality-real-source.json; retrieved by parent through actual Yargitay plugin. No additional retrieval performed by evaluator.",
+  "scope": "Diagnostic within-document passage selection on three purposively selected decisions; no real-world ranking generalization.",
+  "cases": [
+    {
+      "id": "R01",
+      "document_id": "bedesten:498482500",
+      "source_url": "https://mevzuat.adalet.gov.tr/ictihat/498482500",
+      "case_header": "Ceza Genel Kurulu         2016/75 E.  ,  2019/18 K.",
+      "source_characters": 49854,
+      "source_sha256": "41faed6febf39f61009f4c3f40ba2c16aaee034a15f68732da73e904a513be1b",
+      "question": "Adli aramada makul şüphe için ihbarı destekleyen emarelerin ve somut olguların bulunmasını şart koşan değerlendirme hangisidir?",
+      "acceptable_evidence_spans": [
+        {
+          "start": 36102,
+          "end": 36346,
+          "quote": "Bu düzenlemenin getirdiği en büyük yenilik; makul şüphe sebeplerinin somut olgulara dayanması gerektiğinin açıkça belirtilmesi ve arama sonucunda belirli bir şeyin bulunacağının veya belirli bir kişinin yakalanacağının öngörülmesi gerektiğidir.",
+          "voice": "majority_reasoning"
+        },
+        {
+          "start": 37148,
+          "end": 37283,
+          "quote": "makul şüphede, ihbar veya şikâyeti destekleyen emarelerin var olması ve belirtilen konularda şüphenin somut olgulara dayanması şarttır.",
+          "voice": "majority_reasoning"
+        }
+      ],
+      "interpretation_limit": "Normative concrete-facts requirement only. The unanimous court ultimately found the particular search lawful; this is not a holding that the tip in this case was insufficient."
+    },
+    {
+      "id": "R02",
+      "document_id": "bedesten:553432600",
+      "source_url": "https://mevzuat.adalet.gov.tr/ictihat/553432600",
+      "case_header": "Ceza Genel Kurulu         2017/1071 E.  ,  2019/536 K.",
+      "source_characters": 34659,
+      "source_sha256": "f64267a9bfd562a8856b28c945aebe9c159ef2e20a81ccbae63f53cf6e88f3b5",
+      "question": "Konutta arama için hâkim kararı veya gecikmesinde sakınca hâlinde Cumhuriyet savcısının yazılı emrinin gerekli olduğunu belirten kural hangisidir?",
+      "acceptable_evidence_spans": [
+        {
+          "start": 28294,
+          "end": 28487,
+          "quote": "Ancak konutta, iş yerinde ve kamuya açık olmayan kapalı alanlarda sadece hâkim kararı veya gecikmesinde sakınca bulunan hâllerde Cumhuriyet savcısının yazılı emri ile arama yapılması mümkündür.",
+          "voice": "majority_statutory_analysis"
+        },
+        {
+          "start": 33002,
+          "end": 33164,
+          "quote": "CMK'nın 119. maddesine göre ancak hâkim kararı veya gecikmesinde sakınca bulunan hâllerde Cumhuriyet savcısının yazılı emri ile konutta arama yapılması mümkündür.",
+          "voice": "majority_reasoning"
+        }
+      ],
+      "interpretation_limit": "Unanimous reasoning and application. The decision calls for investigation of whether a judicial search decision or written search authorization existed; it does not establish absence as an undisputed finding."
+    },
+    {
+      "id": "R03",
+      "document_id": "bedesten:1163161600",
+      "source_url": "https://mevzuat.adalet.gov.tr/ictihat/1163161600",
+      "case_header": "Ceza Genel Kurulu         2024/360 E.  ,  2025/151 K.",
+      "source_characters": 19108,
+      "source_sha256": "7ebdf2926397e8f9ecac39cfcc90785921a0f91bc0b2fcde18846145aeb7b9b5",
+      "question": "Konutta arama sırasında ihtiyar heyetinden veya komşulardan iki kişinin bulunması zorunluluğunu açıklayan bölümü getir.",
+      "acceptable_evidence_spans": [
+        {
+          "start": 12455,
+          "end": 12645,
+          "quote": "Cumhuriyet savcısı hazır olmaksızın konut, işyeri veya diğer kapalı yerlerde arama yapabilmek için ayrıca o yer ihtiyar heyetinden veya komşulardan iki kişi bulundurulur (CMK madde 119/1-4).",
+          "voice": "majority_statutory_analysis"
+        },
+        {
+          "start": 16375,
+          "end": 16669,
+          "quote": "Sanık ...'in evindeki aramanın, o yer ihtiyar heyetinden veya komşulardan iki kişi hazır bulundurulmaksızın yapılması nedeniyle icrası bakımından hukuka aykırı ve bu arama işlemi sırasında ele geçirilen suça konu uyuşturucu maddenin hukuka aykırı yöntemle elde edilmiş delil niteliğinde olduğu,",
+          "voice": "majority_application"
+        }
+      ],
+      "interpretation_limit": "Majority statutory explanation and application; eight members dissented. Earlier quoted chamber opinions and historical decisions are deliberately not labelled as this court's own reasoning."
+    }
+  ]
+}

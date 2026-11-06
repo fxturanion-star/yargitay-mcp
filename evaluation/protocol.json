@@ -1,0 +1,31 @@
+{
+  "authored_before_model_calls": true,
+  "splits": {
+    "dev": {
+      "queries": 20,
+      "candidates": 20
+    },
+    "holdout": {
+      "queries": 20,
+      "candidates": 20
+    }
+  },
+  "pair_design": "10 pairs/split; 4 direction, 3 measure, 3 speaker/role pairs; two opposite-target queries per pair. Not independent 20 Bernoulli trials. Gold requires exact issue, direction and role. Counterpart is irrelevant for this retrieval intent, not necessarily legally incorrect.",
+  "data_source": "All legal-looking text is synthetic. No external legal text or services.",
+  "candidate_generation": "Every method gets the identical 20 prewritten short passages. No retrieval, passage sampling, filtering or changed candidate generation in this comparison.",
+  "selection": "Select once using dev MRR, then Recall@1, Recall@3, prefer existing E5 on ties, then declared order. Holdout only existing E5, BM25 and locked winner; original12 after lock as regression diagnostic.",
+  "model": "Only existing Xenova multilingual-e5-small quantized ONNX; cached asset hashes verified; ONNX telemetry disabled. No extra model.",
+  "no_production_change": true,
+  "statistical_limits": "Small synthetic convenience set with paired dependent queries; no legal accuracy or broad generalization claim. Grid of ten inexpensive configurations risks dev overfit. A non-improvement is reported honestly.",
+  "metric_definition": "One relevant passage/query. Recall@K is TopK fraction, Precision@K is Recall@K divided by K, MRR is mean reciprocal rank, NDCG@K is 1/log2(rank+1) within K. All other candidates graded 0.",
+  "harness_amendment_before_holdout": {
+    "reason": "Concurrent production edits changed semantik.py after dev; original full-file hash correctly blocked holdout before any holdout inference. Pin original production source in frozen_e5_source.json so unchanged E5 scorer is reproducible.",
+    "unchanged": [
+      "dev/holdout labels and passages",
+      "all ten candidate configurations",
+      "selection rule",
+      "initial dev winner char4"
+    ],
+    "audit": "Initial manifest, selection and dev results preserved as initial_*.json; dev rerun verifies the implementation-only amendment does not alter selection. No holdout score was observed before amendment."
+  }
+}

@@ -1,0 +1,249 @@
+{
+  "synthetic": true,
+  "not_legal_advice": true,
+  "description": "Manually authored, paired hard negatives; exact issue, direction and speaker are required for relevance. Each query has one relevant passage. All passages in this split are candidates. No published legal text.",
+  "passages": {
+    "holdout_01_a": "Gizli görevli, daha önce satış yapmadığı belirlenen kişiyi ısrarlı tekliflerle uyuşturucu teminine yöneltmiştir. Heyet görevin mevcut suçu tespit sınırını aşarak suç işlemeye teşvik oluşturduğunu kabul etmiştir.",
+    "holdout_01_b": "Gizli görevli, zaten sürdürülen uyuşturucu satışını alıcı gibi davranarak izlemiştir. Yeni bir suç kararı oluşturmadan mevcut faaliyeti kaydettiği için suç işlemeye teşvik bulunmadığı kabul edilmiştir.",
+    "holdout_02_a": "Tutuklu kişinin müdafiiyle görüşmeleri görevli huzurunda yapılmış ve konuşmalar kaydedilmiştir. Savunmaya hazırlanma olanağı üzerindeki bu kısıtlamanın zorunluluğu incelenmiştir.",
+    "holdout_02_b": "Tanığın kimlik bilgileri güvenliği gerekçesiyle gizlenmiş, sesi değiştirilerek dinlenmiştir. Savunmanın tanığın güvenilirliğini sınama olanağı üzerindeki kısıtlamanın zorunluluğu incelenmiştir.",
+    "holdout_03_a": "Heyet çoğunluğu, çelişkili bilirkişi raporlarının kuşkuyu gideremediğini belirterek beraat sonucunu benimsemiştir. Karşıoydaki mahkûmiyet görüşüne katılmamıştır.",
+    "holdout_03_b": "Karşıoy sahibi üye, raporlardaki çelişkinin tali olduğunu ve diğer kanıtların suçu doğruladığını belirterek mahkûmiyet gerektiğini savunmuştur. Çoğunluğun beraat görüşüne katılmamıştır.",
+    "holdout_04_a": "Görüşmenin sanık adına kayıtlı hattan yapılması dışında konuşanın kimliğine ilişkin bulgu yoktur. Aboneliğin tek başına hattı o anda kimin kullandığını ispatlamadığı belirtilmiştir.",
+    "holdout_04_b": "Görüşmenin sanık adına kayıtlı hattan yapıldığı saptanmış, ses karşılaştırması ve kamera kayıtlarıyla telefonu sanığın kullandığı doğrulanmıştır. Kimlik tespitinin yeterli olduğu belirtilmiştir.",
+    "holdout_05_a": "Baz istasyonu sinyal kayıtları alınarak hattın belirli saatlerde hangi bölgede bulunduğu araştırılmıştır. Görüşmelerin içeriği elde edilmeden konum verisinin toplanmasının dayanağı incelenmiştir.",
+    "holdout_05_b": "Telefon görüşmeleri eş zamanlı dinlenerek konuşmaların içeriği kayda alınmıştır. Konum verisi yerine haberleşmenin içeriğine müdahale eden bu tedbirin dayanağı incelenmiştir.",
+    "holdout_06_a": "İddianamede savcı, sanığın parayı alırken geri ödeme niyetinin bulunmadığını ve başlangıçtan beri aldatma kastıyla hareket ettiğini ileri sürmüştür. Bu bölüm iddia makamının isnadını aktarmaktadır.",
+    "holdout_06_b": "Mahkeme, savcının başlangıçtan beri aldatma kastı bulunduğu iddiasını kanıtlanmış görmemiştir. Borcun ödenmemesinin tek başına dolandırıcılığı göstermediğini belirterek beraat kararı vermiştir.",
+    "holdout_07_a": "Sanık yargılama dilini anlamadığını bildirdiği halde tercüman görevlendirilmemiştir. Suçlamayı ve soruları anlayamadığı için etkili savunma yapma hakkının ihlal edildiği kabul edilmiştir.",
+    "holdout_07_b": "Sanığa bütün duruşmalarda yetkin tercüman sağlanmış; suçlama, sorular ve karar kendisine çevrilmiştir. Dili anlamaması nedeniyle etkili savunma hakkının ihlal edildiği iddiası reddedilmiştir.",
+    "holdout_08_a": "Suçta kullanıldığı belirlenen araç hakkında hükümle birlikte müsadere kararı verilmiştir. Mülkiyetin kesin olarak devlete geçmesinin üçüncü kişinin iyi niyeti karşısındaki durumu tartışılmıştır.",
+    "holdout_08_b": "Suçta kullanıldığı ileri sürülen araç soruşturma sırasında geçici olarak muhafaza altına alınmıştır. Henüz mülkiyet devri doğurmayan el koymanın üçüncü kişinin iyi niyeti karşısındaki durumu tartışılmıştır.",
+    "holdout_09_a": "Hükme esas alınan bilirkişi raporu savunmaya tebliğ edilmemiş ve rapora itiraz etme fırsatı verilmemiştir. Heyet bu eksikliğin çelişmeli yargılama ilkesini ihlal ettiğini kabul etmiştir.",
+    "holdout_09_b": "Hükme esas alınan bilirkişi raporu savunmaya zamanında tebliğ edilmiş ve ayrıntılı itirazları alınmıştır. Heyet bu usul sayesinde çelişmeli yargılama ilkesinin korunduğunu kabul etmiştir.",
+    "holdout_10_a": "Araç sahibi üçüncü kişi, suçtan haberi bulunmadığını ve aracı yalnızca kısa süreliğine ödünç verdiğini belirterek iadesini istemiştir. Bu bölüm mülkiyet sahibinin talebini aktarmaktadır.",
+    "holdout_10_b": "Mahkeme, araç sahibinin iade talebini incelemiş, suçta kullanımı bildiği yönündeki deliller nedeniyle talebin reddine karar vermiştir. Bu bölüm yargılama makamının sonucunu aktarmaktadır."
+  },
+  "questions": [
+    {
+      "id": "holdout_01a",
+      "kind": "direction",
+      "query": "Gizli soruşturmacının mevcut suçu gözlemek yerine kişiyi suça sürüklediğini kabul eden pasajı bul.",
+      "gold": [
+        "holdout_01_a"
+      ],
+      "foil": [
+        "holdout_01_b"
+      ]
+    },
+    {
+      "id": "holdout_01b",
+      "kind": "direction",
+      "query": "Görevlinin yalnız devam eden satışı saptadığı, kişide yeni suç iradesi yaratmadığı örneği getir.",
+      "gold": [
+        "holdout_01_b"
+      ],
+      "foil": [
+        "holdout_01_a"
+      ]
+    },
+    {
+      "id": "holdout_02a",
+      "kind": "measure",
+      "query": "Tanık kimliğinin saklanmasını değil müdafi ile görüşmenin sınırlandırılmasını konu alan bölümü bul.",
+      "gold": [
+        "holdout_02_a"
+      ],
+      "foil": [
+        "holdout_02_b"
+      ]
+    },
+    {
+      "id": "holdout_02b",
+      "kind": "measure",
+      "query": "Kimliği gizlenerek ve sesi değiştirilerek dinlenen şahsın güvenilirliğini sınama sorununu bul.",
+      "gold": [
+        "holdout_02_b"
+      ],
+      "foil": [
+        "holdout_02_a"
+      ]
+    },
+    {
+      "id": "holdout_03a",
+      "kind": "role",
+      "query": "Çoğunluğun çelişen raporlar nedeniyle beraati benimsediği sonucu getir.",
+      "gold": [
+        "holdout_03_a"
+      ],
+      "foil": [
+        "holdout_03_b"
+      ]
+    },
+    {
+      "id": "holdout_03b",
+      "kind": "role",
+      "query": "Rapor çelişkilerine karşın cezalandırma gerektiğini savunan muhalif üyenin görüşünü göster.",
+      "gold": [
+        "holdout_03_b"
+      ],
+      "foil": [
+        "holdout_03_a"
+      ]
+    },
+    {
+      "id": "holdout_04a",
+      "kind": "direction",
+      "query": "Telefonun tek başına kime ait olduğundan konuşanın kimliğinin çıkarılamadığını söyleyen metni bul.",
+      "gold": [
+        "holdout_04_a"
+      ],
+      "foil": [
+        "holdout_04_b"
+      ]
+    },
+    {
+      "id": "holdout_04b",
+      "kind": "direction",
+      "query": "Hat kaydı ses incelemesi ve görüntülerle desteklendiği için konuşanın saptandığı örneği getir.",
+      "gold": [
+        "holdout_04_b"
+      ],
+      "foil": [
+        "holdout_04_a"
+      ]
+    },
+    {
+      "id": "holdout_05a",
+      "kind": "measure",
+      "query": "İletişim içeriğinin dinlenmesini değil baz istasyonu konum verisinin incelenmesini konu alan pasajı bul.",
+      "gold": [
+        "holdout_05_a"
+      ],
+      "foil": [
+        "holdout_05_b"
+      ]
+    },
+    {
+      "id": "holdout_05b",
+      "kind": "measure",
+      "query": "Konuşmaların içeriğinin eş zamanlı kayda alınmasına ilişkin tedbirin incelendiği bölüm hangisi?",
+      "gold": [
+        "holdout_05_b"
+      ],
+      "foil": [
+        "holdout_05_a"
+      ]
+    },
+    {
+      "id": "holdout_06a",
+      "kind": "role",
+      "query": "İddianamede suç kastı bulunduğunu ileri süren savcı anlatımını bul.",
+      "gold": [
+        "holdout_06_a"
+      ],
+      "foil": [
+        "holdout_06_b"
+      ]
+    },
+    {
+      "id": "holdout_06b",
+      "kind": "role",
+      "query": "Borcun ödenmemesinden aldatma kastı çıkarılmasını reddedip beraat veren mahkeme sonucunu bul.",
+      "gold": [
+        "holdout_06_b"
+      ],
+      "foil": [
+        "holdout_06_a"
+      ]
+    },
+    {
+      "id": "holdout_07a",
+      "kind": "direction",
+      "query": "Tercüman sağlanmamasının savunmayı etkilediğini kabul eden pasajı getir.",
+      "gold": [
+        "holdout_07_a"
+      ],
+      "foil": [
+        "holdout_07_b"
+      ]
+    },
+    {
+      "id": "holdout_07b",
+      "kind": "direction",
+      "query": "Tercüme desteği eksiksiz sağlandığı için dil kaynaklı savunma ihlali bulunmayan bölümü bul.",
+      "gold": [
+        "holdout_07_b"
+      ],
+      "foil": [
+        "holdout_07_a"
+      ]
+    },
+    {
+      "id": "holdout_08a",
+      "kind": "measure",
+      "query": "Müsadereyi geçici el koymadan ayırarak eşyanın kesin biçimde devlete geçirilmesini konu alan metni bul.",
+      "gold": [
+        "holdout_08_a"
+      ],
+      "foil": [
+        "holdout_08_b"
+      ]
+    },
+    {
+      "id": "holdout_08b",
+      "kind": "measure",
+      "query": "Aracın mülkiyeti devredilmeden soruşturma boyunca geçici tutulmasını konu alan bölümü getir.",
+      "gold": [
+        "holdout_08_b"
+      ],
+      "foil": [
+        "holdout_08_a"
+      ]
+    },
+    {
+      "id": "holdout_09a",
+      "kind": "direction",
+      "query": "Delilin savunmadan saklanmasının çelişmeli yargılamayı bozduğunu kabul eden pasaj hangisi?",
+      "gold": [
+        "holdout_09_a"
+      ],
+      "foil": [
+        "holdout_09_b"
+      ]
+    },
+    {
+      "id": "holdout_09b",
+      "kind": "direction",
+      "query": "Rapor önceden bildirilip itirazlar dinlendiği için çelişmeli yargılamanın korunduğu örneği bul.",
+      "gold": [
+        "holdout_09_b"
+      ],
+      "foil": [
+        "holdout_09_a"
+      ]
+    },
+    {
+      "id": "holdout_10a",
+      "kind": "role",
+      "query": "Aracın iadesini talep eden üçüncü kişinin beyanını mahkemenin ret kararından ayırarak getir.",
+      "gold": [
+        "holdout_10_a"
+      ],
+      "foil": [
+        "holdout_10_b"
+      ]
+    },
+    {
+      "id": "holdout_10b",
+      "kind": "role",
+      "query": "Mal sahibinin geri verme istemini suçtan haberdar olduğu gerekçesiyle reddeden mahkeme bölümünü bul.",
+      "gold": [
+        "holdout_10_b"
+      ],
+      "foil": [
+        "holdout_10_a"
+      ]
+    }
+  ]
+}

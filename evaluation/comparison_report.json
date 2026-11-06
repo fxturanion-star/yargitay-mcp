@@ -1,0 +1,419 @@
+{
+  "finding": "No dependable ranking improvement established. Retain production E5; do not adopt the development-winning character ranker. Existing original12 acceptance gate currently fails and remains unchanged.",
+  "dev": {
+    "e5": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 16,
+        "top3_count": 20,
+        "mrr": 0.9,
+        "recall@1": 0.8,
+        "precision@1": 0.8,
+        "ndcg@1": 0.8,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.926186,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.926186,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.926186,
+        "foil_above_gold_count": 3
+      },
+      "warm_query_median_seconds": 0.153602
+    },
+    "bm25": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 17,
+        "top3_count": 20,
+        "mrr": 0.9,
+        "recall@1": 0.85,
+        "precision@1": 0.85,
+        "ndcg@1": 0.85,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.925,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.925,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.925,
+        "foil_above_gold_count": 1
+      },
+      "warm_query_median_seconds": 0.000425
+    },
+    "char4": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 19,
+        "top3_count": 20,
+        "mrr": 0.975,
+        "recall@1": 0.95,
+        "precision@1": 0.95,
+        "ndcg@1": 0.95,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.981546,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.981546,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.981546,
+        "foil_above_gold_count": 1
+      },
+      "warm_query_median_seconds": 0.00218
+    },
+    "rrf_bm25_w05": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 17,
+        "top3_count": 20,
+        "mrr": 0.925,
+        "recall@1": 0.85,
+        "precision@1": 0.85,
+        "ndcg@1": 0.85,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.944639,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.944639,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.944639,
+        "foil_above_gold_count": 3
+      },
+      "warm_query_median_seconds": 0.154124
+    },
+    "rrf_bm25_w1": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 19,
+        "top3_count": 20,
+        "mrr": 0.975,
+        "recall@1": 0.95,
+        "precision@1": 0.95,
+        "ndcg@1": 0.95,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.981546,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.981546,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.981546,
+        "foil_above_gold_count": 1
+      },
+      "warm_query_median_seconds": 0.154118
+    },
+    "rrf_bm25_w2": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 19,
+        "top3_count": 20,
+        "mrr": 0.975,
+        "recall@1": 0.95,
+        "precision@1": 0.95,
+        "ndcg@1": 0.95,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.981546,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.981546,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.981546,
+        "foil_above_gold_count": 1
+      },
+      "warm_query_median_seconds": 0.154117
+    },
+    "rrf_char4_w1": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 19,
+        "top3_count": 20,
+        "mrr": 0.975,
+        "recall@1": 0.95,
+        "precision@1": 0.95,
+        "ndcg@1": 0.95,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.981546,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.981546,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.981546,
+        "foil_above_gold_count": 1
+      },
+      "warm_query_median_seconds": 0.156243
+    },
+    "linear_bm25_015": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 19,
+        "top3_count": 20,
+        "mrr": 0.975,
+        "recall@1": 0.95,
+        "precision@1": 0.95,
+        "ndcg@1": 0.95,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.981546,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.981546,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.981546,
+        "foil_above_gold_count": 1
+      },
+      "warm_query_median_seconds": 0.154119
+    },
+    "linear_bm25_030": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 19,
+        "top3_count": 20,
+        "mrr": 0.975,
+        "recall@1": 0.95,
+        "precision@1": 0.95,
+        "ndcg@1": 0.95,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.981546,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.981546,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.981546,
+        "foil_above_gold_count": 1
+      },
+      "warm_query_median_seconds": 0.154112
+    },
+    "rerank_char4_top5_015": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 18,
+        "top3_count": 20,
+        "mrr": 0.95,
+        "recall@1": 0.9,
+        "precision@1": 0.9,
+        "ndcg@1": 0.9,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.963093,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.963093,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.963093,
+        "foil_above_gold_count": 2
+      },
+      "warm_query_median_seconds": 0.156242
+    }
+  },
+  "holdout": {
+    "e5": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 16,
+        "top3_count": 18,
+        "mrr": 0.864167,
+        "recall@1": 0.8,
+        "precision@1": 0.8,
+        "ndcg@1": 0.8,
+        "recall@3": 0.9,
+        "precision@3": 0.3,
+        "ndcg@3": 0.856546,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.897423,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.897423,
+        "foil_above_gold_count": 2
+      },
+      "warm_query_median_seconds": 0.114083
+    },
+    "bm25": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 14,
+        "top3_count": 18,
+        "mrr": 0.807179,
+        "recall@1": 0.7,
+        "precision@1": 0.7,
+        "ndcg@1": 0.7,
+        "recall@3": 0.9,
+        "precision@3": 0.3,
+        "ndcg@3": 0.826186,
+        "recall@5": 0.9,
+        "precision@5": 0.18,
+        "ndcg@5": 0.826186,
+        "recall@10": 0.9,
+        "precision@10": 0.09,
+        "ndcg@10": 0.826186,
+        "foil_above_gold_count": 4
+      },
+      "warm_query_median_seconds": 0.000446
+    },
+    "char4": {
+      "metrics": {
+        "queries": 20,
+        "top1_count": 15,
+        "top3_count": 20,
+        "mrr": 0.875,
+        "recall@1": 0.75,
+        "precision@1": 0.75,
+        "ndcg@1": 0.75,
+        "recall@3": 1.0,
+        "precision@3": 0.333333,
+        "ndcg@3": 0.907732,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.907732,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.907732,
+        "foil_above_gold_count": 4
+      },
+      "warm_query_median_seconds": 0.00274
+    }
+  },
+  "original12": {
+    "e5": {
+      "metrics": {
+        "queries": 12,
+        "top1_count": 6,
+        "top3_count": 10,
+        "mrr": 0.690278,
+        "recall@1": 0.5,
+        "precision@1": 0.5,
+        "ndcg@1": 0.5,
+        "recall@3": 0.833333,
+        "precision@3": 0.277778,
+        "ndcg@3": 0.699399,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.767527,
+        "recall@10": 1.0,
+        "precision@10": 0.1,
+        "ndcg@10": 0.767527,
+        "foil_above_gold_count": 0
+      },
+      "warm_query_median_seconds": 0.097071
+    },
+    "bm25": {
+      "metrics": {
+        "queries": 12,
+        "top1_count": 1,
+        "top3_count": 3,
+        "mrr": 0.245864,
+        "recall@1": 0.083333,
+        "precision@1": 0.083333,
+        "ndcg@1": 0.083333,
+        "recall@3": 0.25,
+        "precision@3": 0.083333,
+        "ndcg@3": 0.177577,
+        "recall@5": 0.416667,
+        "precision@5": 0.083333,
+        "ndcg@5": 0.249357,
+        "recall@10": 0.583333,
+        "precision@10": 0.058333,
+        "ndcg@10": 0.298531,
+        "foil_above_gold_count": 0
+      },
+      "warm_query_median_seconds": 0.000345
+    },
+    "char4": {
+      "metrics": {
+        "queries": 12,
+        "top1_count": 1,
+        "top3_count": 5,
+        "mrr": 0.334188,
+        "recall@1": 0.083333,
+        "precision@1": 0.083333,
+        "ndcg@1": 0.083333,
+        "recall@3": 0.416667,
+        "precision@3": 0.138889,
+        "ndcg@3": 0.271822,
+        "recall@5": 0.75,
+        "precision@5": 0.15,
+        "ndcg@5": 0.41538,
+        "recall@10": 0.916667,
+        "precision@10": 0.091667,
+        "ndcg@10": 0.469153,
+        "foil_above_gold_count": 0
+      },
+      "warm_query_median_seconds": 0.001711
+    }
+  },
+  "locked_winner": "char4",
+  "holdout_deltas_char4_minus_e5": {
+    "top1_count": -1,
+    "top3_count": 2,
+    "mrr": 0.010833,
+    "ndcg@10": 0.010309
+  },
+  "paired_cluster_bootstrap": {
+    "metric": "char4 minus E5 MRR",
+    "unit": "10 prewritten topic/foil pairs, each holding two dependent queries",
+    "resamples": 10000,
+    "seed": 20261106,
+    "percentile_95_interval": [
+      -0.083333,
+      0.1125
+    ],
+    "purpose": "Descriptive uncertainty only; small synthetic convenience sample does not support generalization."
+  },
+  "original12_thresholds": {
+    "top1_at_least": 8,
+    "top3_at_least": 10,
+    "mrr_at_least": 0.75,
+    "mrr_at_least_bm25": true
+  },
+  "original12_thresholds_pass": false,
+  "resource_measurements": {
+    "holdout_shared_peak_process_rss_mib": 563.0,
+    "first_e5_query_seconds_including_cold_load": 0.93346,
+    "caution": "Peak RSS is the shared whole-process Linux high-water mark, not isolated per ranker. Pipeline latency sums measured required components and fusion. E5 encodes the entire identical candidate pool using production similarities; model and tokenizer load are in the first query. No cross-query passage embedding cache."
+  },
+  "interpretation": [
+    "The dev set favors lexical methods: character ranker and five hybrid configurations tie on dev MRR .975. The frozen tie order selects char4. Holdout is never used to choose among tied configurations.",
+    "On unseen paired holdout, selected char4 loses one Top1 and places the gold below its opposite-direction/role/measure foil in four questions versus two for E5. MRR rises only .010833 while Top3 improves by two.",
+    "On original paraphrase-heavy twelve, char4 falls to one Top1 versus six for E5. Neither synthetic holdout gains nor cheap latency justify replacing production E5.",
+    "RRF and simple score fusion are inexpensive after E5 scores are available, but these remain development-only exploratory diagnostics under the frozen protocol. No extra neural model was justified or installed.",
+    "The comparison holds all passages and candidate pools identical. It measures ranker differences and cannot credit improvements to the parents separate passage selection changes.",
+    "All 40 new queries and 40 synthetic passages were authored before model calls. Labels remain exact issue/direction/speaker targets, not verified statements of law. Split questions are dependent within ten topic pairs; no claim of actual case retrieval or legal accuracy.",
+    "The baseline scorer was pinned after an initial hash check blocked concurrent production changes before any holdout scoring. Initial and repeated dev metrics are exactly identical. Initial manifests and locked selection remain available for audit."
+  ],
+  "reproduction": {
+    "dev": "SEMANTIK_MODEL_CACHE=/tmp/sem-eval-offline /tmp/third-env/bin/python scripts/quality_compare.py --stage dev",
+    "holdout": "SEMANTIK_MODEL_CACHE=/tmp/sem-eval-offline /tmp/third-env/bin/python scripts/quality_compare.py --stage holdout",
+    "old12": "SEMANTIK_MODEL_CACHE=/tmp/sem-eval-offline /tmp/third-env/bin/python scripts/semantic_eval.py",
+    "notes": "Requires existing environment dependencies, existing verified model assets, and repository root working directory. All ranking/gold rows live in *_results.json. No external sources, legal service or model download is used."
+  },
+  "input_sha256": {
+    "scripts/quality_compare.py": "ddfa4287b7b7a0ed63d02c6b7cda62b3d4eb7bce42881866363fffb492176990",
+    "scripts/semantic_eval.py": "b12260ebc2375ba699ba31a6b13e99d34de599d1c279f7ae56c2957985fe55dc",
+    "evaluation/frozen_e5_source.json": "baa3c8243cc82bc5b8d6011033f91d32899beadbb42f8e7b746ca9f7fe2e9ee6",
+    "evaluation/dev.json": "4d600f5975d12dc3289a3e9dd67589d26f2a0884a0249eb308c738fd382a3445",
+    "evaluation/holdout.json": "0a84ca0c8139229e0129e79dede06c4e05f1d2121db5e432f5b20de8da5c5277",
+    "evaluation/protocol.json": "d709da50389b285b5cbcfd156daacb8c0c92218c13387e9de2bdef4e432ff8d4"
+  },
+  "unchanged_files": [
+    "scripts/semantic_eval.py",
+    "test_semantik.py"
+  ],
+  "production_changes_by_this_study": false
+}
