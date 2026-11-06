@@ -1,35 +1,16 @@
 # Yargıtay Karar Arama — MCP Sunucusu
 
-karararama.yargitay.gov.tr (kamuya açık Yargıtay karar arama platformu) üzerinde
-arama yapan ve karar tam metni getiren, **uzak (HTTP) MCP sunucusu**. Bir kez
-bulutta barındırılır, claude.ai hesabınıza özel bağlayıcı (custom connector)
-olarak eklenir ve **hesabınızı kullandığınız tüm bilgisayarlarda** çalışır.
+Yargıtay kararları Adalet Bakanlığının Bedesten indeksinden aranır. Arama, toplu araştırma, bağlantı testi ve tam metin çağrıları bu kaynağı kullanır. Tarih + daire ile kelimesiz sorgu desteklenir. Eski sayısal kaynak kimliklerini yeniden arayın; yeni kimlikler `bedesten:` ile başlar. Numara aralığı yerine kesin esas/karar numarası kullanılabilir.
 
-## Araçlar
+## Ek kaynaklar
 
-| Araç | İşlev |
-|---|---|
-| `yargitay_karar_ara` | Kelime/ifade, daire, esas–karar no aralığı ve karar tarihi aralığına göre arama. Sayfalama destekli. |
-| `yargitay_karar_metni` | Arama sonucundaki `id` ile kararın tam metnini düz metin olarak getirir. |
-| `yargitay_daire_listesi` | Geçerli daire/kurul adlarını listeler (Hukuk/Ceza Genel Kurulu, 1–23. Hukuk/Ceza Daireleri vb.). |
-
-## Önemli teknik notlar (canlı testle doğrulandı — 16.07.2026)
-
-- Sitenin resmî/dokümante API'si yoktur; sunucu, sitenin kendi arayüzünün
-  kullandığı `POST /aramadetaylist` ve `GET /getDokuman` uç noktalarını kullanır.
-  **Site arayüzü değişirse sunucunun güncellenmesi gerekebilir.**
-- Site hız sınırı uygular (HTTP 429 "Erişim Sınırı Aşıldı"). Sunucu istekler
-  arasına en az 3 sn koyar ve 429'da 20 sn bekleyip bir kez yeniden dener.
-  Buna rağmen sınır aşılırsa kullanıcıya "1-2 dakika bekleyin" mesajı döner.
-- Daire filtresinde `"ALL"` değeri sitede 0 sonuç döndürür; tüm daireler için
-  alan hiç gönderilmez (sunucu bunu otomatik yönetir).
-- Tarih formatı `GG.AA.YYYY`, kesin ifade araması çift tırnakla yapılır:
-  `"elektrik piyasası"`.
-
+- `resmi_gazete_fihrist(tarih)` yayımları tarihli sayıdan getirir. Resmî erişim sağlanamazsa yalnızca tarihi eşleşen açık LEXPERA günlük listesi kullanılabilir. Çıktı ikincil kaynağı belirtir; yalnızca resmî kaynak için `ikincil_kaynak=false`. Mükerrer sayılar ayrı sorgulanır. `resmi_gazete_belgesi` fihristin verdiği belge koduyla metni getirir.
+- `aihm_ara` HUDOC kararlarını koleksiyon, ülke, dil, başvuru no, ifade ve tarihle arar. `aihm_karar_getir` seçilen dil kaydının tam metnini sayfalayarak verir. İngilizce arama için ENG, Fransızca için FRE, kayıtlı Türkçe çeviriler için TUR.
+- `yoktez_ara` YÖK kataloğunda tez adı, yazar, danışman, konu, anahtar kelime, özet veya tez numarasıyla arar. `yoktez_detay` açık özet, atıf ve varsa YÖK'ün sunduğu PDF bağlantısını verir.
 ## Kurulum — Seçenek A: FastMCP Cloud (önerilen, kişisel kullanımda ücretsiz)
 
 1. github.com'da hesap açın (varsa geçin) ve bu klasörü **private repo** olarak
-   yükleyin (`server.py`, `requirements.txt` yeterli).
+   yükleyin (tüm Python modüllerini ve requirements.txt dosyasını dahil edin).
 2. https://fastmcp.cloud adresine GitHub ile giriş yapın.
 3. "New Server" → repo'yu seçin → Entrypoint: `server.py:mcp` → Deploy.
 4. ~1 dk içinde adres alırsınız: `https://<sunucu-adiniz>.fastmcp.app/mcp`
@@ -42,8 +23,7 @@ docker run -p 8000:8000 yargitay-mcp
 # MCP adresi: http://<host>:8000/mcp  (HTTPS için ters proxy gerekir)
 ```
 
-Ortam değişkenleri: `PORT` (varsayılan 8000), `MCP_PATH` (varsayılan `/mcp`),
-`YARGITAY_MIN_INTERVAL` (istekler arası minimum sn, varsayılan 3).
+Ortam değişkenleri: `PORT` (varsayılan 8000), `MCP_PATH` (varsayılan `/mcp`).
 
 ## claude.ai'ye bağlama (tüm cihazlarda çalışması için)
 
@@ -70,8 +50,6 @@ karar metinlerinin işlenmesinde KVKK ve platformun kullanım koşullarına uyum
 kullanıcının sorumluluğundadır.
 
 ## Karar ve mevzuat kaynakları
-
-Karar aramasında Yargıtay sitesine bağlantı kurulamazsa sunucu Adalet Bakanlığının Bedesten servisinde YARGITAYKARARI türünü arar. Bedesten sonuçlarının kimliği `bedesten:` ile başlar. Kimliği değiştirmeden karar metni aracına verin. Sonuç sayısı sorgulanan kaynağa aittir. İki indeksin kapsadığı kararlar farklı olabilir. Bedesten kesin esas/karar sıra numarasını destekler; sıra numarası aralığı için asıl kaynak gerekir.
 
 `mevzuat_genel_ara` Bakanlığın indeksindeki mevzuatı sayfalayarak arar. Türü boş bırakınca farklı mevzuat türleri birlikte aranır; mülga kayıtlar da çıkabilir. `mevzuat_belgesi_getir` sonuçtaki belge kimliğiyle metni ve resmî bağlantıyı getirir. Uzun belgelerde sonraki_baslangic değerini kullanın. Yürürlük durumunu ve değişiklik notlarını kaynak belge üzerinden doğrulayın.
 

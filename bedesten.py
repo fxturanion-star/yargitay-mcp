@@ -39,8 +39,10 @@ def rows(data, key):
 
 
 async def judgments(query):
-    params = {"itemTypeList": ["YARGITAYKARARI"], "phrase": query["aranan"],
+    params = {"itemTypeList": ["YARGITAYKARARI"],
               "pageSize": query["pageSize"], "pageNumber": query["pageNumber"]}
+    if query["aranan"].strip():
+        params["phrase"] = query["aranan"]
     for old, new in (("birimYrgKurulDaire", "birimAdi"), ("esasYil", "esasNoYil"),
                      ("kararYil", "kararNoYil")):
         if old in query:

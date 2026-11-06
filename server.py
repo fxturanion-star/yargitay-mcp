@@ -1,52 +1,12 @@
-"""
-Yargıtay Karar Arama MCP Sunucusu
-==================================
-karararama.yargitay.gov.tr (kamuya açık Yargıtay karar arama platformu)
-üzerinde arama ve karar tam metni çekme araçları sunar.
-
-Doğrulanmış API davranışı (16.07.2026 canlı test):
-  - POST /aramadetaylist  -> {"data": {...arama alanları...}}
-    * "aranan" ve "arananKelime" alanlarının İKİSİ de gönderilmelidir.
-    * Daire filtresi "birimYrgKurulDaire" gerçek daire adı ister
-      ("ALL" gönderilirse 0 sonuç döner — tüm daireler için alan hiç gönderilmez).
-    * Tarihler GG.AA.YYYY formatındadır.
-    * Yanıt: {"data": {"recordsTotal": N, "data": [{id, daire, esasNo,
-      kararNo, kararTarihi, arananKelime, index, siraNo}]}}
-  - GET /getDokuman?id=<id> -> {"data": "<html>"} (karar tam metni)
-  - Hız sınırı: art arda hızlı isteklerde HTTP 429 ("Erişim Sınırı Aşıldı").
-    Bu sunucu istekler arasına en az MIN_INTERVAL saniye koyar ve 429'da
-    bekleyip bir kez yeniden dener.
-"""
-
+"""Yargıtay araştırması (Bedesten), mevzuat ve resmî belge araçları."""
 from __future__ import annotations
 
-import asyncio
 import os
 import re
-import time
-from typing import Any, Optional
+from typing import Any
 
-import httpx
-from bs4 import BeautifulSoup
 from fastmcp import FastMCP
 import bedesten
-
-BASE_URL = "https://karararama.yargitay.gov.tr"
-MIN_INTERVAL = float(os.environ.get("YARGITAY_MIN_INTERVAL", "3.0"))
-RETRY_WAIT = float(os.environ.get("YARGITAY_RETRY_WAIT", "20.0"))
-TIMEOUT = 30.0
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Content-Type": "application/json; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest",
-    "Origin": BASE_URL,
-    "Referer": BASE_URL + "/",
-}
 
 # Geçerli daire adları (birimYrgKurulDaire alanı için)
 DAIRELER: list[str] = (
@@ -59,7 +19,7 @@ DAIRELER: list[str] = (
 mcp = FastMCP(
     name="Yargıtay Karar Arama",
     instructions=(
-        "karararama.yargitay.gov.tr üzerinde Yargıtay kararı arar ve karar "
+        "Adalet Bakanlığı Bedesten üzerinde Yargıtay kararı arar ve karar "
         "tam metnini getirir. Önce yargitay_karar_ara ile arama yapın, "
         "sonuçtaki 'id' değerini yargitay_karar_metni aracına verin. "
         "Kaynak sitede hız sınırı vardır; araçlar istekleri otomatik "
@@ -67,27 +27,6 @@ mcp = FastMCP(
     ),
 )
 
-
-class _Throttle:
-    """Kaynak siteye giden istekleri küresel olarak aralıklandırır."""
-
-    def __init__(self, min_interval: float) -> None:
-        self.min_interval = min_interval
-        self._lock = asyncio.Lock()
-        self._last = 0.0
-
-    async def wait(self) -> None:
-        async with self._lock:
-            now = time.monotonic()
-            delta = now - self._last
-            if delta < self.min_interval:
-                await asyncio.sleep(self.min_interval - delta)
-            self._last = time.monotonic()
-
-
-_throttle = _Throttle(MIN_INTERVAL)
-_client: Optional[httpx.AsyncClient] = None
-_client_lock = asyncio.Lock()
 
 # Karar metni önbelleği (id -> düz metin). Aynı oturumda tekrar istenen
 # kararlar siteye gidilmeden döner.
@@ -99,70 +38,6 @@ def _cache_put(karar_id: str, text: str) -> None:
     if len(_doc_cache) >= _CACHE_MAX:
         _doc_cache.pop(next(iter(_doc_cache)))
     _doc_cache[karar_id] = text
-
-
-async def _get_client() -> httpx.AsyncClient:
-    global _client
-    async with _client_lock:
-        if _client is None or _client.is_closed:
-            candidate = httpx.AsyncClient(
-                base_url=BASE_URL, headers=HEADERS, timeout=httpx.Timeout(TIMEOUT, connect=6),
-                follow_redirects=True,
-            )
-            try:
-                # Çerez almak için ana sayfaya bir kez dokun.
-                await candidate.get("/")
-            except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-                await candidate.aclose()
-                raise RuntimeError(f"Yargıtay HTTPS bağlantısı kurulamadı: {BASE_URL} ({type(exc).__name__}).") from exc
-            except httpx.HTTPError:
-                pass  # Çerez alınamazsa da API çoğu zaman çalışır.
-            _client = candidate
-        return _client
-
-
-class RateLimitedError(Exception):
-    pass
-
-
-async def _request(method: str, path: str, **kw: Any) -> Any:
-    """Hız sınırına saygılı istek; 429'da bir kez bekleyip yeniden dener."""
-    client = await _get_client()
-    for attempt in (1, 2):
-        await _throttle.wait()
-        try:
-            resp = await client.request(method, path, **kw)
-        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-            raise RuntimeError(f"Yargıtay bağlantısı başarısız: {method} {BASE_URL}{path} ({type(exc).__name__}).") from exc
-        if resp.status_code == 429 or (
-            resp.status_code == 200
-            and resp.headers.get("content-type", "").startswith("text/html")
-            and "Erişim Sınırı" in resp.text[:2000]
-        ):
-            if attempt == 1:
-                await asyncio.sleep(RETRY_WAIT)
-                continue
-            raise RateLimitedError(
-                "Yargıtay karar arama sitesi hız sınırı uyguladı (HTTP 429). "
-                "Lütfen 1-2 dakika bekleyip yeniden deneyin."
-            )
-        resp.raise_for_status()
-        return resp.json()
-    raise RuntimeError("unreachable")
-
-
-def _html_to_text(html: str) -> str:
-    """Karar HTML'ini okunur düz metne çevirir."""
-    soup = BeautifulSoup(html, "html.parser")
-    for tag in soup(["script", "style"]):
-        tag.decompose()
-    # <br> ve blok öğeleri satır sonuna çevir
-    for br in soup.find_all("br"):
-        br.replace_with("\n")
-    text = soup.get_text(separator="\n")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
-    return text.strip()
 
 
 def _keyword_windows(text: str, keyword: str, window: int = 700, max_hits: int = 4) -> str:
@@ -195,12 +70,7 @@ async def _fetch_doc_text(karar_id: str) -> str:
         text = await bedesten.document(karar_id.removeprefix("bedesten:"))
         _cache_put(karar_id, text)
         return text
-    payload = await _request("GET", "/getDokuman", params={"id": karar_id})
-    html = (payload or {}).get("data") or ""
-    text = _html_to_text(html) if html else ""
-    if text:
-        _cache_put(karar_id, text)
-    return text
+    raise ValueError("Eski Yargıtay kimliği: kararı E./K. ile tekrar arayıp bedesten: kimliğini kullanın.")
 
 
 def _validate_date(value: str, name: str) -> None:
@@ -231,7 +101,7 @@ async def _do_search(
     sayfa: int = 1,
     sayfa_boyutu: int = 10,
 ) -> dict:
-    """Yargıtay kararlarında detaylı arama yapar (karararama.yargitay.gov.tr).
+    """Yargıtay kararlarında detaylı arama yapar (Adalet Bakanlığı Bedesten).
 
     Args:
         aranan_kelime: Aranacak kelime/ifade. Kesin ifade için çift tırnak
@@ -269,9 +139,8 @@ async def _do_search(
     sayfa_boyutu = min(100, max(1, int(sayfa_boyutu)))
 
     data: dict[str, Any] = {
-        # Site her iki alanı da bekliyor (canlı doğrulandı).
         "aranan": aranan_kelime or "",
-        "arananKelime": aranan_kelime or "",
+
         "pageSize": sayfa_boyutu,
         "pageNumber": sayfa,
     }
@@ -287,38 +156,7 @@ async def _do_search(
         if val:
             data[key] = str(val)
 
-    try:
-        payload = await _request("POST", "/aramadetaylist", json={"data": data})
-    except RuntimeError as exc:
-        if not isinstance(exc.__cause__, (httpx.ConnectError, httpx.ConnectTimeout)):
-            raise
-        return await bedesten.judgments(data)
-    inner = payload.get("data") if isinstance(payload, dict) else None
-    if not isinstance(inner, dict) or not isinstance(inner.get("data"), list):
-        raise RuntimeError("Yargıtay beklenen karar listesini döndürmedi; sonuç sayısı doğrulanamadı.")
-    rows = inner["data"]
-    kararlar = [
-        {
-            "id": str(r.get("id", "")),
-            "daire": r.get("daire"),
-            "esas_no": r.get("esasNo"),
-            "karar_no": r.get("kararNo"),
-            "karar_tarihi": r.get("kararTarihi"),
-        }
-        for r in rows
-    ]
-    return {
-        "toplam_sonuc": inner.get("recordsTotal", 0),
-        "sayfa": sayfa,
-        "sayfa_boyutu": sayfa_boyutu,
-        "kararlar": kararlar,
-        "not": (
-            "Karar tam metni için yargitay_karar_metni aracını 'id' ile çağırın."
-            if kararlar else
-            "Sonuç yok. Arama kelimesini sadeleştirmeyi veya filtreleri "
-            "gevşetmeyi deneyin."
-        ),
-    }
+    return await bedesten.judgments(data)
 
 
 @mcp.tool
@@ -412,9 +250,6 @@ async def yargitay_toplu_arastirma(
     for k in arama["kararlar"][:metin_sayisi]:
         try:
             text = await _fetch_doc_text(k["id"])
-        except RateLimitedError as e:
-            hatalar.append(f"{k['id']}: {e}")
-            break
         except Exception as e:  # tek karar hatası araştırmayı durdurmasın
             hatalar.append(f"{k['id']}: {type(e).__name__}")
             continue
@@ -465,7 +300,7 @@ async def yargitay_karar_metni(karar_id: str) -> dict:
         }
     return {
         "id": karar_id,
-        "kaynak": (f"{bedesten.SITE}/ictihat/{karar_id.removeprefix('bedesten:')}" if karar_id.startswith("bedesten:") else f"{BASE_URL}/getDokuman?id={karar_id}"),
+        "kaynak": f"{bedesten.SITE}/ictihat/{karar_id.removeprefix('bedesten:')}",
         "metin": text,
     }
 
@@ -492,71 +327,13 @@ mcp.tool(
 )
 @mcp.tool(annotations={"readOnlyHint": True})
 async def yargitay_baglanti_testi() -> dict:
-    """Yargıtay'a DNS, TCP ve HTTPS erişimini test eder."""
-    import asyncio
-    import socket
-    import httpx
+    """Etkin kaynak Bedesten üzerinde bir sonuçluk gerçek CGK araması yapar."""
+    sonuc = await _do_search(daire="Ceza Genel Kurulu", sayfa_boyutu=1)
+    return {"kaynak": sonuc["kaynak"], "toplam": sonuc["toplam_sonuc"], "ilk": sonuc["kararlar"]}
 
-    host = "karararama.yargitay.gov.tr"
+import kaynaklar
+kaynaklar.register(mcp)
 
-    def hata(exc):
-        zincir = []
-        for _ in range(6):
-            if exc is None:
-                break
-            zincir.append(
-                f"{type(exc).__name__}: {str(exc)[:300]}"
-            )
-            exc = exc.__cause__ or exc.__context__
-        return zincir
-
-    sonuc = {}
-
-    try:
-        kayitlar = await asyncio.wait_for(
-            asyncio.get_running_loop().getaddrinfo(
-                host, 443, type=socket.SOCK_STREAM
-            ),
-            timeout=5,
-        )
-        sonuc["dns"] = sorted({k[4][0] for k in kayitlar})
-    except Exception as exc:
-        sonuc["dns_hatasi"] = hata(exc)
-
-    async def tcp(aile):
-        try:
-            _, writer = await asyncio.wait_for(
-                asyncio.open_connection(
-                    host, 443, family=aile
-                ),
-                timeout=5,
-            )
-            writer.close()
-            await writer.wait_closed()
-            return "Baglanti kuruldu"
-        except Exception as exc:
-            return hata(exc)
-
-    sonuc["tcp_ipv4"], sonuc["tcp_ipv6"] = (
-        await asyncio.gather(
-            tcp(socket.AF_INET),
-            tcp(socket.AF_INET6),
-        )
-    )
-
-    try:
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(10, connect=5),
-            follow_redirects=False,
-        ) as client:
-            async with client.stream(
-                "GET", f"https://{host}/"
-            ) as response:
-                sonuc["https_durumu"] = response.status_code
-    except Exception as exc:
-        sonuc["https_hatasi"] = hata(exc)
-
-    return sonuc
 import emsal
 emsal.register(mcp, yargitay_karar_metni)
 
