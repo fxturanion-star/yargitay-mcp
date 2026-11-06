@@ -104,15 +104,19 @@ async def _get_client() -> httpx.AsyncClient:
     global _client
     async with _client_lock:
         if _client is None or _client.is_closed:
-            _client = httpx.AsyncClient(
+            candidate = httpx.AsyncClient(
                 base_url=BASE_URL, headers=HEADERS, timeout=TIMEOUT,
                 follow_redirects=True,
             )
             try:
                 # Çerez almak için ana sayfaya bir kez dokun.
-                await _client.get("/")
+                await candidate.get("/")
+            except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+                await candidate.aclose()
+                raise RuntimeError(f"Yargıtay HTTPS bağlantısı kurulamadı: {BASE_URL} ({type(exc).__name__}).") from exc
             except httpx.HTTPError:
                 pass  # Çerez alınamazsa da API çoğu zaman çalışır.
+            _client = candidate
         return _client
 
 
@@ -125,7 +129,10 @@ async def _request(method: str, path: str, **kw: Any) -> Any:
     client = await _get_client()
     for attempt in (1, 2):
         await _throttle.wait()
-        resp = await client.request(method, path, **kw)
+        try:
+            resp = await client.request(method, path, **kw)
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            raise RuntimeError(f"Yargıtay bağlantısı başarısız: {method} {BASE_URL}{path} ({type(exc).__name__}).") from exc
         if resp.status_code == 429 or (
             resp.status_code == 200
             and resp.headers.get("content-type", "").startswith("text/html")
@@ -276,8 +283,10 @@ async def _do_search(
             data[key] = str(val)
 
     payload = await _request("POST", "/aramadetaylist", json={"data": data})
-    inner = (payload or {}).get("data") or {}
-    rows = inner.get("data") or []
+    inner = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(inner, dict) or not isinstance(inner.get("data"), list):
+        raise RuntimeError("Yargıtay beklenen karar listesini döndürmedi; sonuç sayısı doğrulanamadı.")
+    rows = inner["data"]
     kararlar = [
         {
             "id": str(r.get("id", "")),
