@@ -101,3 +101,5 @@ ChatGPT'nin içe aktardığı katalog yeni aracı göstermiyorsa aynı semantik 
 \`python scripts/candidate_eval.py\` ağsız aday-senaryo testini; \`python scripts/quality_compare.py --stage all\` dondurulmuş geliştirme/holdout karşılaştırmasını çalıştırır. Gerçek karar deneyi için raporda verilen kaynakları ayrı edinip \`python scripts/real_passage_eval.py --source /path/source.json\` kullanın. Bu etiketler ajan destekli olup hukuk uzmanı incelemesinden geçmemiştir. GitHub kalite işi ile canlı kaynak işleri ayrı sonuçlar verir.
 
 Docker için kesin sürüm damgası \`docker build --build-arg RELEASE_REVISION=$(git rev-parse HEAD) -t yargitay-mcp .\` ile verilir. Yönetilen Cloud imajında SHA damgası ve yetkili \`FASTMCP_VERIFY_TOKEN\` ayrı yapılandırılmalıdır. Bu PR canlı Cloud'a uygulanmış kabul edilmez.
+
+PR3 için [üretim öncesi kontrol notu](docs/pr3-preflight-2026-11-06.md) gerçek Docker imaj testini, eski kabul başarısızlığından ayrı regresyon kontrolünü ve üç resmî kayıt üzerinde ağsız MCP/model denemesini açıklar. `python scripts/quality_regression.py` temel sürümle karşılaştırır; eski `scripts/semantic_eval.py` kabul testi ayrıca çalıştırılmalıdır.

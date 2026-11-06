@@ -1,0 +1,23 @@
+{
+  "baseline_commit": "1bc1dc95d19ea06818a1e96c2ee76f1015928bb8",
+  "script_sha256": "b12260ebc2375ba699ba31a6b13e99d34de599d1c279f7ae56c2957985fe55dc",
+  "gold_ranks": {
+    "Q01": 1,
+    "Q02": 5,
+    "Q03": 2,
+    "Q04": 3,
+    "Q05": 2,
+    "Q06": 4,
+    "Q07": 1,
+    "Q08": 1,
+    "Q09": 1,
+    "Q10": 1,
+    "Q11": 1,
+    "Q12": 2
+  },
+  "acceptance": {
+    "min_top1": 8,
+    "min_top3": 10,
+    "min_mrr": 0.75
+  }
+}

@@ -87,3 +87,74 @@ jobs:
         with:
           name: semantic-quality-evidence
           path: evaluation/*.json
+
+  semantic-regression:
+    name: Temel sürüme göre semantik regresyon
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python -c 'import semantik; semantik._model()'
+      - run: python scripts/quality_regression.py
+
+  container:
+    name: Gerçek Docker imajı ve üretim öncesi deneme
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: İmajı commit damgasıyla derle
+        run: |
+          revision="$(git rev-parse HEAD)"
+          echo "IMAGE_REVISION=$revision" >> "$GITHUB_ENV"
+          docker build --build-arg "RELEASE_REVISION=$revision" -t yargitay-preflight .
+      - name: Beklenen kaynak manifestini hazırla
+        run: |
+          mkdir -p "$RUNNER_TEMP/mcp-expected"
+          python - <<'PYCODE'
+          import hashlib,json,os
+          from pathlib import Path
+          names=[p.name for p in Path('.').glob('*.py') if not p.name.startswith('test_')]+['requirements.txt']
+          manifest={name:hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in sorted(names)}
+          (Path(os.environ['RUNNER_TEMP'])/'mcp-expected/files.json').write_text(json.dumps(manifest))
+          PYCODE
+      - name: Ağsız imaj SHA, kaynak ve MCP testi
+        run: |
+          docker run --rm --network none -e "EXPECTED_SHA=$IMAGE_REVISION" \
+            -v "$RUNNER_TEMP/mcp-expected:/expected:ro" -v "$PWD/scripts:/checks:ro" \
+            yargitay-preflight python /checks/container_smoke.py
+      - name: Üç resmî kaydı ve sabit modeli ayrı edin
+        run: |
+          mkdir -p "$RUNNER_TEMP/mcp-preflight/cache"
+          docker run --rm -i -e SEMANTIK_MODEL_CACHE=/cache \
+            -v "$RUNNER_TEMP/mcp-preflight:/records" -v "$RUNNER_TEMP/mcp-preflight/cache:/cache" \
+            yargitay-preflight python - <<'PYCODE'
+          import asyncio,json
+          from pathlib import Path
+          import bedesten,semantik
+          async def acquire():
+              rows=[]
+              for identifier in ('1163161600','498482500','1018167800'):
+                  text=await bedesten.document(identifier)
+                  rows.append({'id':'bedesten:'+identifier,'metin':text,
+                               'kaynak':bedesten.SITE+'/ictihat/'+identifier})
+              Path('/records/source.json').write_text(json.dumps(rows,ensure_ascii=False))
+              print('Resmî kayıt edinimi:',[(r['id'],len(r['metin'])) for r in rows])
+          asyncio.run(acquire())
+          semantik._model()
+          PYCODE
+      - name: İmaj içinde ağsız CGK, ceza dairesi ve uzun karar denemesi
+        run: |
+          docker run --rm --network none -e SEMANTIK_MODEL_CACHE=/cache \
+            -v "$RUNNER_TEMP/mcp-preflight:/records:ro" -v "$RUNNER_TEMP/mcp-preflight/cache:/cache:ro" \
+            -v "$PWD/scripts:/app/scripts:ro" \
+            yargitay-preflight python /app/scripts/preflight_semantic.py --source /records/source.json
