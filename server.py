@@ -227,13 +227,19 @@ async def yargitay_toplu_arastirma(
     metin_bicimi: str = "pencere",
 ) -> dict:
     """Künye ve eşleşme pasajlarını getir. İlk taramada sonuc_sayisi=5, metin_sayisi=1 önerilir.
-    Tarihler GG.AA.YYYY. En çok 100 künye, 10 metin. metin_bicimi: pencere veya tam."""
+    Tarihler GG.AA.YYYY. En çok 100 künye, 10 metin. metin_bicimi: pencere, tam veya semantik. Semantik modda aranan_kelime hukuki sorudur; metin_sayisi 1–6 aday, sonuc_sayisi 1–6 sonuç seçer."""
     if not aranan_kelime.strip():
         raise ValueError("aranan_kelime boş olamaz.")
     sonuc_sayisi = min(100, max(1, int(sonuc_sayisi)))
     metin_sayisi = min(10, max(0, int(metin_sayisi)))
+    if metin_bicimi == "semantik":
+        if metin_sayisi < 1:
+            raise ValueError("Semantik modda metin_sayisi en az 1 olmalı.")
+        return await _semantik_arama(soru=aranan_kelime, daire=daire,
+            baslangic_tarihi=baslangic_tarihi, bitis_tarihi=bitis_tarihi,
+            aday_sayisi=min(6, metin_sayisi), sonuc_sayisi=min(6, sonuc_sayisi))
     if metin_bicimi not in ("pencere", "tam"):
-        raise ValueError('metin_bicimi "pencere" veya "tam" olmalıdır.')
+        raise ValueError('metin_bicimi "pencere", "tam" veya "semantik" olmalıdır.')
 
     arama = await _do_search(
         aranan_kelime=aranan_kelime, daire=daire,
@@ -315,8 +321,11 @@ mcp.tool(
     name="mevzuat_bilinen_kanunlar",
 )
 @mcp.tool(annotations={"readOnlyHint": True})
-async def yargitay_baglanti_testi(surum_kontrolu: bool = False) -> dict:
+async def yargitay_baglanti_testi(surum_kontrolu: bool = False, arac_listesi: bool = False) -> dict:
     """Bedesten üzerinde CGK araması yapar. surum_kontrolu=true yalnız çalışan kodu GitHub main ile karşılaştırır."""
+    if arac_listesi:
+        tools = await mcp.list_tools()
+        return {"arac_sayisi":len(tools), "araclar":sorted(t.name for t in tools)}
     if surum_kontrolu:
         return await surum.kontrol()
     sonuc = await _do_search(daire="Ceza Genel Kurulu", sayfa_boyutu=1)
@@ -326,7 +335,7 @@ import kaynaklar
 kaynaklar.register(mcp)
 
 import semantik
-semantik.register(mcp, _do_search, _fetch_doc_text)
+_semantik_arama = semantik.register(mcp, _do_search, _fetch_doc_text)
 
 import emsal
 emsal.register(mcp, yargitay_karar_metni)

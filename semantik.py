@@ -199,3 +199,5 @@ def register(mcp, search, read):
                 "arama_ifadeleri":phrases, "incelenen_aday":len(inspected), "incelenen_pasaj":len(passages),
                 "model":MODEL, "hukuki_uygunluk_dogrulandi":False, "pasaj_sahibi_dogrulandi":False,
                 "sonuclar":ranked[:sonuc_sayisi], "hatalar":errors}
+
+    return semantik_ictihat_ara
