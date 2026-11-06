@@ -70,6 +70,16 @@ async def request(client, method, url, **kwargs):
             raise
 
 
+def json_object(response, source):
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise ValueError(f"{source} okunabilir JSON döndürmedi.") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{source} yanıt yapısı değişti; bir JSON nesnesi bekleniyordu.")
+    return data
+
+
 async def kaynak_durumu() -> dict:
     """Son HTTP gözlemini ve kalan beklemeyi gösterir; kaynaklara yeni sorgu göndermez."""
     return {HOSTS[host]: {"son_http_durumu": gate.status, "son_deneme": gate.last,

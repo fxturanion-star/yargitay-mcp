@@ -2,7 +2,9 @@
 import asyncio
 import base64
 import binascii
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import httpx
 from bs4 import BeautifulSoup
@@ -22,7 +24,7 @@ async def request(path, data, paging=False):
         body["paging"] = True
     async with httpx.AsyncClient(timeout=httpx.Timeout(25, connect=6)) as client:
         response = await upstream.request(client, "POST", BASE + path, json=body)
-    payload = response.json()
+    payload = upstream.json_object(response, "Bedesten")
     if not isinstance(payload, dict) or not isinstance(payload.get("metadata", {}), dict):
         raise ValueError("Bedesten yanıt şeması değişti.")
     if payload.get("metadata", {}).get("FMTY") == "ERROR":
@@ -86,7 +88,15 @@ async def _search_judgments(query):
         if old in query:
             dt = datetime.strptime(query[old], "%d.%m.%Y")
             params[new] = dt.strftime("%Y-%m-%d") + ("T00:00:00" if old=="baslangicTarihi" else "T23:59:59.999")
+    latest = query.get("enYeni", False)
+    if latest:
+        params.update(sortFields=["KARAR_TARIHI"], sortDirection="DESC")
+        if "kararTarihiEnd" not in params:
+            today = datetime.now(ZoneInfo("Europe/Istanbul")).date()
+            params["kararTarihiEnd"] = today.isoformat() + "T23:59:59.999"
     data = await search_page("/emsal-karar/searchDocuments", params, "emsalKararList")
+    if latest:
+        await _verify_latest(params, data)
     results = []
     for row in rows(data, "emsalKararList"):
         fields = ("documentId", "birimAdi", "esasNo", "kararNo", "kararTarihiStr")
@@ -100,7 +110,39 @@ async def _search_judgments(query):
         _kunyeler[card["id"]] = card
     result = {"toplam_sonuc": data["total"], "sayfa": params["pageNumber"], "sayfa_boyutu": params["pageSize"],
             "kararlar": results, "kaynak": "Adalet Bakanlığı Bedesten / Yargıtay"}
+    if latest:
+        result.update(siralama="karar tarihi azalan", kapsamin_son_gunu=params["kararTarihiEnd"][:10],
+                      kapsam="Bedesten indeksinde sorgu anında yayımlanmış eşleşmeler")
     return result
+
+
+async def _verify_latest(params, data):
+    records = rows(data, "emsalKararList")
+    if len(records) != min(data["total"], params["pageSize"]):
+        raise ValueError("Bedesten en yeni karar listesini eksik döndürdü.")
+    if not records:
+        return
+    try:
+        dates = [datetime.strptime(r["kararTarihiStr"], "%d.%m.%Y").date() for r in records]
+        ids = [str(r["documentId"]) for r in records]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("Bedesten karar tarihi veya belge kimliği okunamadı.") from exc
+    upper = datetime.fromisoformat(params["kararTarihiEnd"]).date()
+    lower = datetime.fromisoformat(params["kararTarihiStart"]).date() if "kararTarihiStart" in params else None
+    if (dates != sorted(dates, reverse=True) or len(set(ids)) != len(ids)
+            or dates[0] > upper or (lower and dates[-1] < lower)):
+        raise ValueError("Bedesten karar sırası veya tarih aralığı doğrulanamadı.")
+    last = dates[-1]
+    if last == upper:
+        return
+    newer = {**params, "kararTarihiStart": (last + timedelta(days=1)).isoformat() + "T00:00:00"}
+    check = await request("/emsal-karar/searchDocuments", newer, True)
+    expected = {doc for doc, day in zip(ids, dates) if day > last}
+    found = rows(check, "emsalKararList")
+    if (check["total"] != len(expected) or len(found) != len(expected)
+            or any(not isinstance(r, dict) for r in found)
+            or {str(r.get("documentId")) for r in found} != expected):
+        raise ValueError("Daha yeni tarihli kararlar bağımsız sorguyla doğrulanamadı; aramayı yenileyin.")
 
 
 async def document(doc, law=False, article=False):
@@ -160,3 +202,33 @@ async def mevzuat_belgesi_getir(belge_id: str, baslangic: int = 0) -> dict:
     return {"metin":text[baslangic:end], "toplam_karakter":len(text),
             "sonraki_baslangic":end if end < len(text) else None, "kaynak":f"{SITE}/mevzuat/{belge_id}",
             "erisim_zamani":datetime.now(timezone.utc).isoformat()}
+
+
+async def resolve_card(identifier, text):
+    """Resmî metnin başlığı ile aynı belge kimliğine bağlı arama kaydını karşılaştır."""
+    header = re.match(
+        r"^\s*(?P<daire>Ceza Genel Kurulu|Hukuk Genel Kurulu|Büyük Genel Kurulu|\d+\.\s*(?:Ceza|Hukuk) Dairesi)"
+        r"\s+(?P<esas>\d{4}/(?:\d+-)?\d+)\s*E\.\s*,?\s*(?P<karar>\d{4}/\d+)\s*K\.",
+        text[:350], re.I)
+    card = _kunyeler.get(identifier)
+    if not header:
+        return card or {}, "metin başlığı doğrulanamadı"
+    court, case, decision = header.groups()
+    if card is None:
+        year, serial = decision.split("/")
+        query = {"aranan":"", "birimYrgKurulDaire":court, "kararYil":year,
+                 "kararIlkSiraNo":serial, "kararSonSiraNo":serial, "pageNumber":1, "pageSize":20}
+        try:
+            result = await judgments(query)
+        except (httpx.HTTPError, ValueError, RuntimeError) as exc:
+            return {}, f"resmî künye sorgusu tamamlanamadı ({type(exc).__name__})"
+        matches = [row for row in result["kararlar"] if row["id"] == identifier]
+        if len(matches) != 1:
+            return {}, "resmî aramada aynı belge kimliği tekil olarak doğrulanamadı"
+        card = matches[0]
+    # Eski CGK başlıklarında 2011/6-245, indekste 2011/245 olarak gösterilebilir.
+    short_case = re.sub(r"/\d+-", "/", case)
+    if (card["daire"].casefold() != court.casefold() or card["karar_no"] != decision
+            or card["esas_no"] not in (case, short_case)):
+        return {}, "resmî metin başlığı ve arama künyesi uyuşmuyor"
+    return card, "belge kimliği, daire ve E./K. doğrulandı"

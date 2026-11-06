@@ -19,6 +19,14 @@ async def audit(client, issue):
     assert "Bedesten" in await call("kaynak_durumu")
     assert "Ceza Genel Kurulu" in (await call("yargitay_daire_listesi"))["daireler"]
     assert (await call("yargitay_baglanti_testi"))["ilk"]
+    # Bilinen bir resmî belgeyi süreç başlangıcında, önce aramadan çöz.
+    cold = await call("emsal_dogrula", karar_id="bedesten:75719900", onerme="Karar künyesini incele")
+    assert cold["kunye"]["karar_no"] == "2012/61" and "E./K. doğrulandı" in cold["kunye_durumu"]
+    print("Soğuk künye:", cold["kunye"], flush=True)
+    for court in ("Ceza Genel Kurulu", "1. Ceza Dairesi"):
+        newest = await call("yargitay_karar_ara", daire=court, sayfa_boyutu=3, en_yeni=True)
+        assert len(newest["kararlar"]) == 3 and all(row["daire"] == court for row in newest["kararlar"])
+        print(court, [(row["karar_tarihi"], row["karar_no"]) for row in newest["kararlar"]], flush=True)
     search = await call("yargitay_karar_ara", daire="Ceza Genel Kurulu", sayfa_boyutu=1)
     doc = search["kararlar"][0]["id"]
     assert search["kararlar"][0]["daire"] == "Ceza Genel Kurulu"
@@ -43,6 +51,7 @@ async def audit(client, issue):
     para = await call("aym_paragraf_getir", karar_id=item["basvuru_no"], paragraf_no=1)
     assert para["id"] == item["id"] and para["metin"].strip()
     index = await call("resmi_gazete_fihrist", tarih=issue, ikincil_kaynak=True)
+    print("Fihrist kaynağı:", index["kaynak"], flush=True)
     publication = await call("resmi_gazete_belgesi", belge=index["belgeler"][0]["belge"])
     assert index["tarih"] == issue and publication["metin"].strip()
     judgments = await call("aihm_ara", ifade="reasonable suspicion", ulke="TUR", adet=1)

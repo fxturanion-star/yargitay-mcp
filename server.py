@@ -124,6 +124,7 @@ async def _do_search(
     bitis_tarihi: str = "",
     sayfa: int = 1,
     sayfa_boyutu: int = 10,
+    en_yeni: bool = False,
 ) -> dict:
     """Yargıtay kararlarında detaylı arama yapar (Adalet Bakanlığı Bedesten).
 
@@ -161,6 +162,8 @@ async def _do_search(
                 f"Geçersiz daire adı: {daire!r}. "
                 "Geçerli adlar için yargitay_daire_listesi aracını çağırın."
             )
+    if en_yeni and (sayfa != 1 or not 1 <= sayfa_boyutu <= 20):
+        raise ValueError("En yeni sorgusunda sayfa 1, sayfa boyutu 1–20 olmalı.")
     sayfa = max(1, int(sayfa))
     sayfa_boyutu = min(100, max(1, int(sayfa_boyutu)))
 
@@ -170,6 +173,8 @@ async def _do_search(
         "pageSize": sayfa_boyutu,
         "pageNumber": sayfa,
     }
+    if en_yeni:
+        data["enYeni"] = True
     # Boş filtre alanlarını hiç gönderme; "ALL" değeri 0 sonuç döndürüyor.
     if daire:
         data["birimYrgKurulDaire"] = daire
@@ -199,13 +204,14 @@ async def yargitay_karar_ara(
     bitis_tarihi: str = "",
     sayfa: int = 1,
     sayfa_boyutu: int = 10,
+    en_yeni: bool = False,
 ) -> dict:
     """Bedesten’de Yargıtay künyelerini ara. Kesin ifadeyi çift tırnağa al. Tarihler GG.AA.YYYY;
-    kesin sıra numarası için iki sınırı eşit ver. Sayfa boyutu 1–100. Metin için seçilen id’yi kullan."""
+    En güncel kararlar için en_yeni=true, sayfa=1 ve boyut 1–20 kullan. Kesin sıra numarası için iki sınırı eşit ver. Sayfa boyutu 1–100. Metin için seçilen id’yi kullan."""
     return await _do_search(
         aranan_kelime, daire, esas_yil, esas_ilk_sira_no, esas_son_sira_no,
         karar_yil, karar_ilk_sira_no, karar_son_sira_no,
-        baslangic_tarihi, bitis_tarihi, sayfa, sayfa_boyutu,
+        baslangic_tarihi, bitis_tarihi, sayfa, sayfa_boyutu, en_yeni,
     )
 
 

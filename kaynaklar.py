@@ -139,11 +139,13 @@ async def aihm_ara(ifade: str = "", ulke: str = "", dil: str = "ENG", basvuru_no
         terms.append(f"(kpdate:[{lo} TO {hi}])")
     params={"query":" AND ".join(terms),"select":"itemid,docname,appno,kpdate,languageisocode,documentcollectionid2,doctype,respondent",
             "sort":"kpdate Descending","start":(sayfa-1)*adet,"length":adet}
-    data=(await fetch(HUDOC+"/app/query/results",params=params)).json()
+    data=upstream.json_object(await fetch(HUDOC+"/app/query/results",params=params), "HUDOC")
     if not isinstance(data.get("results"),list) or not isinstance(data.get("resultcount"),int):
         raise RuntimeError("HUDOC sonuç listesi doğrulanamadı.")
     records=[]
     for result in data["results"]:
+        if not isinstance(result, dict) or not isinstance(result.get("columns"), dict) or not result["columns"].get("itemid"):
+            raise ValueError("HUDOC karar künyesinde belge kimliği eksik.")
         row=result["columns"]
         records.append({**row,"kaynak":HUDOC+"/eng?i="+row["itemid"]})
     return {"toplam":data["resultcount"],"sayfa":sayfa,"sonuclar":records}
@@ -208,7 +210,7 @@ async def yoktez_detay(kayit: str, belge: str) -> dict:
         raise ValueError("Aramadan dönen kayıt ve belge anahtarları gereklidir.")
     url=YOK+"tezBilgiDetay.jsp"
     r=await fetch(url,params={"kayitNo":kayit,"tezNo":belge})
-    data=r.json()
+    data=upstream.json_object(r, "YÖK Tez")
     keys=("trOzet","enOzet","danisman","yer","apa_ref","anahtarKelimeTr")
     if not any(data.get(k) for k in keys):
         raise LookupError("YÖK kayıt ayrıntısı doğrulanamadı.")

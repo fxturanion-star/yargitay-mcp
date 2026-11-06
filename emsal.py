@@ -18,7 +18,7 @@ async def _records(params):
         response = await upstream.request(client, "POST", AYM + "/api/core/public/search",
                                      json={"kararTipi":"BireyselBasvuru", **params})
         response.raise_for_status()
-        payload = response.json()
+        payload = upstream.json_object(response, "AYM")
     if (not isinstance(payload, dict) or not isinstance(payload.get("data"), list)
             or any(not isinstance(row, dict) or not row.get("id") for row in payload["data"])):
         raise ValueError("AYM sonuç listesi doğrulanamadı.")
@@ -106,9 +106,12 @@ def register(mcp, fetch_yargitay):
                 raise ValueError("Yargıtay için kaynaksız paragraf numarası kullanılamaz.")
             doc = await fetch_yargitay(karar_id, karakter_sayisi=None)
         source_text = " ".join((doc.get("metin") or "").split())
-        card = doc if mahkeme == "AYM" else bedesten._kunyeler.get(karar_id, {})
+        if mahkeme == "AYM":
+            card, card_status = doc, "resmî AYM kaydı"
+        else:
+            card, card_status = await bedesten.resolve_card(karar_id, source_text)
         info = {"onerme":onerme,"karar_id":karar_id,"mahkeme":mahkeme,"kaynak":doc.get("kaynak"),
-                "paragraf":paragraf_no, "alinti_dogrulandi":False,
+                "paragraf":paragraf_no, "kunye_durumu":card_status, "alinti_dogrulandi":False,
                 "hukuki_degerlendirme_dogrulanmadi":True, "pasaj_sahibi_dogrulandi":False,
                 "kunye":{key:card.get(key) for key in
                          ("daire","esas_no","karar_no","karar_tarihi","basvuru_no","ad")}}
