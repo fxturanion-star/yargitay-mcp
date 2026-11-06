@@ -74,3 +74,8 @@ kullanıcının sorumluluğundadır.
 Karar aramasında Yargıtay sitesine bağlantı kurulamazsa sunucu Adalet Bakanlığının Bedesten servisinde YARGITAYKARARI türünü arar. Bedesten sonuçlarının kimliği `bedesten:` ile başlar. Kimliği değiştirmeden karar metni aracına verin. Sonuç sayısı sorgulanan kaynağa aittir. İki indeksin kapsadığı kararlar farklı olabilir. Bedesten kesin esas/karar sıra numarasını destekler; sıra numarası aralığı için asıl kaynak gerekir.
 
 `mevzuat_genel_ara` Bakanlığın indeksindeki mevzuatı sayfalayarak arar. Türü boş bırakınca farklı mevzuat türleri birlikte aranır; mülga kayıtlar da çıkabilir. `mevzuat_belgesi_getir` sonuçtaki belge kimliğiyle metni ve resmî bağlantıyı getirir. Uzun belgelerde sonraki_baslangic değerini kullanın. Yürürlük durumunu ve değişiklik notlarını kaynak belge üzerinden doğrulayın.
+
+## Ceza araştırması ve atıf doğrulama
+
+- `aym_ara` Anayasa Mahkemesi bireysel başvurularını tarar. `aym_paragraf_getir` başvuru numarası veya arama kimliğiyle resmî metinde tekil olarak bulunan numaralı paragrafı verir. Belirsiz numara için kaynak sayfasına başvurun.
+- `emsal_dogrula` iki aşamalıdır. Önce önermeyi ve kararı verip metni okuyun (uzun metinde sayfalayın). Ardından metinden alıntı, pasajın sahibi, gerekçe ve destek derecesini iletin. Sunucu boşlukları normalleştirerek alıntıyı kaynak metinle karşılaştırır. Önerme hakkında hukuki değerlendirme ve pasajın aidiyeti sohbet modeline aittir. Karşıoy ve alıntılanan başka karar, çoğunluk görüşüyle karıştırılmamalıdır.

@@ -557,6 +557,9 @@ async def yargitay_baglanti_testi() -> dict:
         sonuc["https_hatasi"] = hata(exc)
 
     return sonuc
+import emsal
+emsal.register(mcp, yargitay_karar_metni)
+
 if __name__ == "__main__":
     transport = os.environ.get("MCP_TRANSPORT", "http")
     if transport == "stdio":
