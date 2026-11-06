@@ -54,7 +54,7 @@ async def judgments(query):
     for old, new in (("baslangicTarihi", "kararTarihiStart"), ("bitisTarihi", "kararTarihiEnd")):
         if old in query:
             dt = datetime.strptime(query[old], "%d.%m.%Y")
-            params[new] = dt.strftime("%Y-%m-%d") + ("T00:00:00+03:00" if old=="baslangicTarihi" else "T23:59:59.999+03:00")
+            params[new] = dt.strftime("%Y-%m-%d") + ("T00:00:00" if old=="baslangicTarihi" else "T23:59:59.999")
     data = await request("/emsal-karar/searchDocuments", params, True)
     results = []
     for row in rows(data, "emsalKararList"):
