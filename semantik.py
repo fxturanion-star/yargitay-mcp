@@ -5,12 +5,15 @@ import os
 import re
 import tempfile
 import threading
+import time
+import math
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 
 import httpx
 import bedesten
+from passage_selection import select_passages
 
 MODEL = "Xenova/multilingual-e5-small"
 REVISION = "761b726dd34fb83930e26aab4e9ac3899aa1fa78"
@@ -19,6 +22,7 @@ FILES = {"tokenizer.json": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd6803836
 _inference = threading.Lock()
 _workers = ThreadPoolExecutor(max_workers=1, thread_name_prefix="semantic-model")
 _slots = asyncio.BoundedSemaphore(3)
+_requests = asyncio.BoundedSemaphore(2)
 
 
 def _asset(name):
@@ -35,9 +39,12 @@ def _asset(name):
         with tempfile.NamedTemporaryFile(dir=folder, delete=False) as file:
             temp = Path(file.name)
             digest = hashlib.sha256()
-            with httpx.stream("GET", url, follow_redirects=True, timeout=60) as response:
+            deadline = time.monotonic() + 180
+            with httpx.stream("GET", url, follow_redirects=True, timeout=30) as response:
                 response.raise_for_status()
                 for chunk in response.iter_bytes(65536):
+                    if time.monotonic() > deadline:
+                        raise RuntimeError("Semantik model indirme süresi doldu.")
                     if file.tell() + len(chunk) > 128 * 1024 * 1024:
                         raise ValueError("Model dosyası boyut sınırını aştı.")
                     file.write(chunk)
@@ -46,6 +53,8 @@ def _asset(name):
             raise ValueError("Semantik model dosyasının özeti doğrulanamadı.")
         os.replace(temp, path)
         return path
+    except httpx.HTTPError as exc:
+        raise RuntimeError("Semantik model indirilemedi: " + type(exc).__name__) from None
     finally:
         if temp is not None:
             temp.unlink(missing_ok=True)
@@ -74,6 +83,11 @@ def similarities(question, passages):
 
     with _inference:
         tokenizer, session = _model()
+        tokenizer.no_truncation()
+        query_size = len(tokenizer.encode("query: " + question).ids)
+        tokenizer.enable_truncation(max_length=256)
+        if query_size > 256:
+            raise ValueError("Soru modelin 256 token sınırını aşıyor; soruyu kısaltın.")
         texts = ["query: " + question] + ["passage: " + text for text in passages]
         vectors = []
         for start in range(0, len(texts), 8):
@@ -98,11 +112,15 @@ async def _score(question, passages):
         _slots.release()
         raise
     # İstemci bağlantıyı kesse dahi çalışan iş bitene kadar yerini korur.
-    future.add_done_callback(lambda _: _slots.release())
+    def finished(done):
+        _slots.release()
+        if not done.cancelled():
+            done.exception()  # İptal edilen istemciden sonra kalan işin hatasını tüket.
+    future.add_done_callback(finished)
     return await asyncio.shield(future)
 
 
-_HOME = re.compile(r"\b(?:konut\w*|mesken\w*|ikametg[aâ]h\w*|ev(?:i|in|de|den|ler|e)\w*|kaldığı yer)", re.I)
+_HOME = re.compile(r"\b(?:konut\w*|mesken\w*|ikametg[aâ]h\w*|ev(?:i|in|inde|inden|ine|ini|de|den|e|indeki|ler(?:i|inde|inden)?)?\b|kaldığı yer)", re.I)
 _SEARCH = re.compile(r"\bara(?:ma|n|t)\w*", re.I)
 
 
@@ -128,13 +146,45 @@ def _phrases(question, supplied):
     return list(dict.fromkeys(terms))[:3] or [question[:120]]
 
 
-def _passages(text):
-    size, stride, limit = 680, 500, 20
-    last = max(0, len(text) - size)
-    count = min(limit, 1 + (last + stride - 1) // stride)
-    for i in range(count):
-        start = last * i // max(1, count-1)
-        yield start, text[start:start+size]
+def _passages(text, question="", limit=20):
+    return select_passages(text, question, limit)
+
+
+def _limit(name, default, maximum):
+    value = int(os.getenv(name, str(default)))
+    if not 1 <= value <= maximum:
+        raise ValueError(f"{name} 1–{maximum} aralığında olmalı.")
+    return value
+
+
+def _candidate_pool(groups, limit):
+    cards, scores, sources = {}, {}, {}
+    for group_no, group in enumerate(groups):
+        seen = set()
+        for rank, card in enumerate(group, 1):
+            key = card["id"]
+            if key in seen:
+                continue
+            seen.add(key)
+            cards.setdefault(key, card)
+            scores[key] = scores.get(key, 0) + 1 / (60 + rank)
+            sources.setdefault(key, set()).add(group_no)
+    ordered = sorted(cards, key=lambda key: -scores[key])
+    selected, covered = [], set()
+    for key in ordered:
+        if sources[key] - covered:
+            selected.append(key)
+            covered.update(sources[key])
+        if len(selected) == limit:
+            break
+    selected.extend(key for key in ordered if key not in selected)
+    return [cards[key] for key in selected[:limit]]
+
+
+def _source_error(exc):
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"Kaynak HTTP {exc.response.status_code} döndürdü."
+    return "Kaynak veya künye doğrulanamadı (" + type(exc).__name__ + ")."
 
 
 def register(mcp, search, read):
@@ -145,29 +195,46 @@ def register(mcp, search, read):
         """Hukuki soruya en yakın Yargıtay pasajlarını Bedesten adayları içinde sırala.
         İstemci soru için 1–3 kısa alternatif arama ifadesi verebilir. Tarihler GG.AA.YYYY.
         Benzerlik, hukuki destek veya çoğunluk görüşü doğrulaması sağlamaz."""
+        if _requests.locked() or _slots.locked():
+            raise RuntimeError("Semantik sorgu kapasitesi dolu; daha sonra deneyin.")
+        await _requests.acquire()
+        try:
+            return await _run(soru, arama_ifadeleri, daire, baslangic_tarihi, bitis_tarihi,
+                              aday_sayisi, sonuc_sayisi)
+        finally:
+            _requests.release()
+
+    async def _run(soru, arama_ifadeleri, daire, baslangic_tarihi, bitis_tarihi, aday_sayisi, sonuc_sayisi):
+        max_documents = _limit("SEMANTIK_MAX_DOCUMENTS", 6, 12)
+        pool_limit = _limit("SEMANTIK_CANDIDATE_POOL", 18, 60)
+        per_doc = _limit("SEMANTIK_PASSAGES_PER_DOC", 20, 36)
+        passage_limit = _limit("SEMANTIK_MAX_PASSAGES", 120, 240)
+        max_chars = _limit("SEMANTIK_MAX_TEXT_CHARS", 500000, 2000000)
         question = soru.strip()
-        if not 4 <= len(question) <= 1200 or not 1 <= aday_sayisi <= 6 or not 1 <= sonuc_sayisi <= 6:
-            raise ValueError("Soru 4–1200 karakter, aday ve sonuç sayıları 1–6 olmalı.")
+        if not 4 <= len(question) <= 1200 or not 1 <= aday_sayisi <= max_documents or not 1 <= sonuc_sayisi <= 6:
+            raise ValueError(f"Soru 4–1200 karakter, aday sayısı 1–{max_documents}, sonuç sayısı 1–6 olmalı.")
         phrases = _phrases(question, arama_ifadeleri)
         groups = []
         errors = []
+        page_size = max(1, min(20, (pool_limit + len(phrases)-1) // len(phrases)))
         for phrase in phrases:
             # Hatalı filtre veya kaynak kesintisi boş sonuç olarak sunulmaz.
             result = await search(aranan_kelime=phrase, daire=daire, baslangic_tarihi=baslangic_tarihi,
-                                  bitis_tarihi=bitis_tarihi, sayfa_boyutu=aday_sayisi)
+                                  bitis_tarihi=bitis_tarihi, sayfa_boyutu=page_size)
             groups.append(result["kararlar"])
-        candidates = {}
-        for i in range(aday_sayisi):
-            for group in groups:
-                if i < len(group):
-                    candidates.setdefault(group[i]["id"], group[i])
+        candidates = _candidate_pool(groups, pool_limit)
+        to_read = candidates[:min(aday_sayisi, passage_limit)]
+        per_doc = min(per_doc, max(1, passage_limit // max(1, len(to_read))))
         passages = []
         inspected = []
         home_search = _home_search(question)
         rejected = 0
-        for card in list(candidates.values())[:aday_sayisi]:
+        scanned_chars = 0
+        for card in to_read:
             try:
                 text = await read(card["id"])
+                if len(text) > max_chars:
+                    raise ValueError("Karar semantik metin boyutu sınırını aşıyor.")
                 if not text.strip():
                     raise ValueError("Boş karar metni.")
                 verified, status = await bedesten.resolve_card(card["id"], " ".join(text[:500].split()))
@@ -175,13 +242,13 @@ def register(mcp, search, read):
                     errors.append({"id":card["id"], "neden":status})
                     continue
             except (httpx.HTTPError, ValueError, RuntimeError, LookupError) as exc:
-                errors.append({"id":card["id"], "neden":str(exc)[:250]})
+                errors.append({"id":card["id"], "neden":_source_error(exc)})
                 continue
             inspected.append(card["id"])
-            for start, excerpt in _passages(text):
+            scanned_chars += len(text)
+            for start, excerpt in _passages(text, question, per_doc):
                 if home_search and not _home_search(excerpt):
                     rejected += 1
-                    continue
                 passages.append({**verified, "kunye_durumu":status, "pasaj":excerpt, "baslangic":start,
                                  "bitis":start+len(excerpt)})
         if candidates and not inspected:
@@ -190,12 +257,16 @@ def register(mcp, search, read):
         if passages:
             scores = await _score(question, [p["pasaj"] for p in passages])
             for passage, score in zip(passages, scores, strict=True):
+                if not math.isfinite(score):
+                    raise ValueError("Semantik model sonlu bir skor döndürmedi.")
                 doc = passage["id"]
                 if doc not in top or score > top[doc]["benzerlik"]:
                     top[doc] = {**passage, "benzerlik":score}
         ranked = sorted(top.values(), key=lambda p:p["benzerlik"], reverse=True)
         return {"durum":"deneysel", "pasaj_odagi":"konutta arama" if home_search else None,
-                "odak_disi_pasaj":rejected, "kapsam":"Bedesten aramalarından seçilen aday kararların örneklenen pasajları",
+                "odak_disi_pasaj":rejected, "odak_filtresi":"yalnız bilgi, eleme yapılmaz",
+                "aday_havuzu":len(candidates), "kaynak_sorgu_sayisi":len(phrases),
+                "metin_okuma_denemesi":len(to_read), "taranan_karakter":scanned_chars, "kapsam":"Bedesten aramalarından seçilen aday kararların örneklenen pasajları",
                 "arama_ifadeleri":phrases, "incelenen_aday":len(inspected), "incelenen_pasaj":len(passages),
                 "model":MODEL, "hukuki_uygunluk_dogrulandi":False, "pasaj_sahibi_dogrulandi":False,
                 "sonuclar":ranked[:sonuc_sayisi], "hatalar":errors}

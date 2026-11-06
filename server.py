@@ -327,7 +327,7 @@ async def yargitay_baglanti_testi(surum_kontrolu: bool = False, arac_listesi: bo
         tools = await mcp.list_tools()
         return {"arac_sayisi":len(tools), "araclar":sorted(t.name for t in tools)}
     if surum_kontrolu:
-        return await surum.kontrol()
+        return await surum.kontrol(await mcp.list_tools())
     sonuc = await _do_search(daire="Ceza Genel Kurulu", sayfa_boyutu=1)
     return {"kaynak": sonuc["kaynak"], "toplam": sonuc["toplam_sonuc"], "ilk": sonuc["kararlar"]}
 

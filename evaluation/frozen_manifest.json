@@ -1,0 +1,11 @@
+{
+  "stage": "Harness-only isolation amendment; data/configs/selection unchanged; before any holdout scoring",
+  "sha256": {
+    "scripts/quality_compare.py": "ddfa4287b7b7a0ed63d02c6b7cda62b3d4eb7bce42881866363fffb492176990",
+    "scripts/semantic_eval.py": "b12260ebc2375ba699ba31a6b13e99d34de599d1c279f7ae56c2957985fe55dc",
+    "evaluation/frozen_e5_source.json": "baa3c8243cc82bc5b8d6011033f91d32899beadbb42f8e7b746ca9f7fe2e9ee6",
+    "evaluation/dev.json": "4d600f5975d12dc3289a3e9dd67589d26f2a0884a0249eb308c738fd382a3445",
+    "evaluation/holdout.json": "0a84ca0c8139229e0129e79dede06c4e05f1d2121db5e432f5b20de8da5c5277",
+    "evaluation/protocol.json": "d709da50389b285b5cbcfd156daacb8c0c92218c13387e9de2bdef4e432ff8d4"
+  }
+}

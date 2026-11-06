@@ -32,7 +32,7 @@ jobs:
       matrix:
         source: [core, resmi, lexpera, semantik]
     needs: offline
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.issue_date != '')
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.issue_date != '')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -45,18 +45,43 @@ jobs:
           RG_DATE: ${{ inputs.issue_date }}
           TEST_SOURCE: ${{ matrix.source }}
         run: python test_live.py "${RG_DATE:-$(TZ=Europe/Istanbul date +%F)}" "$TEST_SOURCE"
-      - name: Bağımsız semantik sıralama değerlendirmesi
-        if: ${{ !cancelled() && matrix.source == 'semantik' }}
-        run: python scripts/semantic_eval.py
-      - name: Resmî Gazete ağ aşamalarını ölç
-        if: failure() && matrix.source == 'resmi'
+      - name: Başarısız kaynak için ağ aşamalarını ölç
+        if: failure() && (matrix.source == 'resmi' || matrix.source == 'lexpera')
         env:
           RG_DATE: ${{ inputs.issue_date }}
+          TEST_SOURCE: ${{ matrix.source }}
         run: |
           day="${RG_DATE:-$(TZ=Europe/Istanbul date +%F)}"
           [[ "$day" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+          if [ "$TEST_SOURCE" = lexpera ]; then
+            curl -sS --connect-timeout 8 --max-time 20 -o /dev/null \
+              -w 'LEXPERA HTTP=%{http_code} DNS=%{time_namelookup} TCP=%{time_connect} TLS=%{time_appconnect} FIRST_BYTE=%{time_starttransfer}\n' \
+              https://www.lexpera.com.tr/resmi-gazete || true
+            exit 0
+          fi
           for path in "fihrist?tarih=$day" "eskiler/${day:0:4}/${day:5:2}/${day//-/}.htm"; do
             curl -sS --connect-timeout 8 --max-time 20 -o /dev/null \
               -w "$path HTTP=%{http_code} DNS=%{time_namelookup} TCP=%{time_connect} TLS=%{time_appconnect} FIRST_BYTE=%{time_starttransfer}\n" \
               "https://www.resmigazete.gov.tr/$path" || true
           done
+
+  quality:
+    name: Sabit semantik kabul ve bağımsız ölçüm
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python scripts/quality_compare.py --stage all
+      - run: python scripts/candidate_eval.py
+      - run: python scripts/semantic_eval.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semantic-quality-evidence
+          path: evaluation/*.json

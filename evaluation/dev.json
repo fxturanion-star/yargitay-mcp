@@ -1,0 +1,249 @@
+{
+  "synthetic": true,
+  "not_legal_advice": true,
+  "description": "Manually authored, paired hard negatives; exact issue, direction and speaker are required for relevance. Each query has one relevant passage. All passages in this split are candidates. No published legal text.",
+  "passages": {
+    "dev_01_a": "İsimsiz ihbar başka bir somut bulguyla doğrulanmadan kişinin konutunda arama yapılmıştır. Heyet, bu şartlarda gerçekleştirilen aramayı hukuka aykırı bulmuştur.",
+    "dev_01_b": "İsimsiz ihbar üzerine izleme yapılmış ve adreste suç eşyası taşındığı görülmüştür. Heyet, somut gözlemle desteklenen konut aramasını hukuka uygun bulmuştur.",
+    "dev_02_a": "Tutukluluğun devamında kaçma veya delilleri karartma tehlikesi kişiye özgü olgularla açıklanmamıştır. Basmakalıp gerekçeyle özgürlükten yoksun bırakmanın sürdürülmesi isabetli görülmemiştir.",
+    "dev_02_b": "Telefon görüşmelerinin dinlenmesine izin verilirken başka yolla delil elde etme olanağı tartışılmamıştır. Basmakalıp gerekçe, haberleşmeye müdahalenin neden gerekli olduğunu açıklamamaktadır.",
+    "dev_03_a": "Karşıoy sahibi üye, parmak izinin olay yerine hangi tarihte bırakıldığının belirlenemediğini, tek başına mahkûmiyete yetmeyeceğini belirtmiştir. Çoğunluğun mahkûmiyet görüşüne katılmamıştır.",
+    "dev_03_b": "Heyet çoğunluğu, parmak izinin olayın zamanı ve diğer bulgularla birlikte değerlendirildiğinde mahkûmiyet için yeterli olduğunu belirtmiştir. Karşıoy gerekçesi benimsenmemiştir.",
+    "dev_04_a": "Müdafi olmadan kollukta alınan ifade sanık tarafından hâkim önünde doğrulanmamıştır. Heyet, doğrulanmayan bu anlatımı hükme esas almamıştır.",
+    "dev_04_b": "Müdafi olmadan kollukta alınan ifade sanık tarafından duruşmada hâkim önünde özgür iradesiyle doğrulanmıştır. Heyet bu doğrulama nedeniyle anlatımı değerlendirmeye almıştır.",
+    "dev_05_a": "Banka hesabındaki paraya el koyma tedbirinin yıllarca sürmesi karşısında kişinin geçim giderleri ve müdahalenin ağırlığı değerlendirilmiştir. Tedbirin ölçülülüğü bu yönden tartışılmıştır.",
+    "dev_05_b": "Sanığın yurt dışına çıkış yasağının yıllarca sürmesi karşısında ailesinin yanına seyahat etme ihtiyacı değerlendirilmiştir. Hareket serbestisine müdahalenin ölçülülüğü tartışılmıştır.",
+    "dev_06_a": "Cumhuriyet savcısı, delillerin toplanmış olması ve kaçma tehlikesinin bulunmaması nedeniyle sanığın tahliyesini talep etmiştir. Bu bölüm savcının mütalaasını aktarmaktadır.",
+    "dev_06_b": "Mahkeme, savcının tahliye talebini değerlendirmiş ancak kaçma tehlikesinin sürdüğünü belirterek tutukluluğun devamına karar vermiştir. Bu bölüm heyetin sonucunu aktarmaktadır.",
+    "dev_07_a": "Mahkûmiyetin başlıca delili olan tanığa savunmanın hiçbir aşamada soru yöneltmesine izin verilmemiştir. Heyet bunun savunma hakkını ihlal ettiğine karar vermiştir.",
+    "dev_07_b": "Mahkûmiyetin başlıca delili olan tanık duruşmada dinlenmiş, savunmaya doğrudan soru yöneltme olanağı sağlanmıştır. Heyet savunma hakkının ihlal edilmediğine karar vermiştir.",
+    "dev_08_a": "Mağdura teşhis sırasında yalnız sanığın fotoğrafı gösterilmiştir. Benzer görünümlü kişiler arasında seçim yaptırılmadığından kişi belirleme işleminin yönlendirici niteliği tartışılmıştır.",
+    "dev_08_b": "Kolluk konutta yaptığı aramada yalnız sanığın fotoğrafının yer aldığı bir albüme el koymuştur. Arama kararının kapsamı ve albümün delil olarak muhafazası tartışılmıştır.",
+    "dev_09_a": "Dijital diskin ilk kopyası ile bilirkişiye verilen kopyanın hash değerleri uyuşmamaktadır. Teslim zinciri de kayıtsız olduğundan verinin bütünlüğü doğrulanamamıştır.",
+    "dev_09_b": "Dijital diskin ilk kopyası ile bilirkişiye verilen kopyanın hash değerleri aynıdır. Teslim zinciri kesintisiz kaydedildiğinden verinin bütünlüğü doğrulanmıştır.",
+    "dev_10_a": "İlk derece mahkemesi sanığın sessiz kalmasını suçluluk belirtisi saymıştır. İnceleme heyeti, susma hakkının kullanılmasının kişi aleyhine delil olamayacağını belirterek bu gerekçeyi eleştirmiştir.",
+    "dev_10_b": "İlk derece mahkemesi, sanığın sessiz kalmasını olay hakkında açıklama yapamamasının göstergesi saymış ve mahkûmiyet gerekçesinde aleyhine kullanmıştır. Bu bölüm yerel mahkemenin gerekçesidir."
+  },
+  "questions": [
+    {
+      "id": "dev_01a",
+      "kind": "direction",
+      "query": "Yalnızca isimsiz bildirimle konutta aramayı hukuka aykırı bulan bölümü getir.",
+      "gold": [
+        "dev_01_a"
+      ],
+      "foil": [
+        "dev_01_b"
+      ]
+    },
+    {
+      "id": "dev_01b",
+      "kind": "direction",
+      "query": "Bildirim sahadaki gözlemle doğrulandığı için ev aramasını geçerli sayan metni bul.",
+      "gold": [
+        "dev_01_b"
+      ],
+      "foil": [
+        "dev_01_a"
+      ]
+    },
+    {
+      "id": "dev_02a",
+      "kind": "measure",
+      "query": "Kişiye özgü gerekçe olmadan tutuklamanın sürdürülmesini eleştiren pasajı bul.",
+      "gold": [
+        "dev_02_a"
+      ],
+      "foil": [
+        "dev_02_b"
+      ]
+    },
+    {
+      "id": "dev_02b",
+      "kind": "measure",
+      "query": "Haberleşmenin denetlenmesinde başka yöntemlerin neden yetmediğinin açıklanmamasını konu alan bölüm hangisi?",
+      "gold": [
+        "dev_02_b"
+      ],
+      "foil": [
+        "dev_02_a"
+      ]
+    },
+    {
+      "id": "dev_03a",
+      "kind": "role",
+      "query": "Parmak izini tek başına yeterli görmeyen karşıoy yazısını getir.",
+      "gold": [
+        "dev_03_a"
+      ],
+      "foil": [
+        "dev_03_b"
+      ]
+    },
+    {
+      "id": "dev_03b",
+      "kind": "role",
+      "query": "Çoğunluğun iz bulgusunu diğer kanıtlarla birlikte suçluluk için yeterli bulduğu bölümü göster.",
+      "gold": [
+        "dev_03_b"
+      ],
+      "foil": [
+        "dev_03_a"
+      ]
+    },
+    {
+      "id": "dev_04a",
+      "kind": "direction",
+      "query": "Avukatsız kolluk ifadesinin duruşmada benimsenmediği için hükme esas alınamayacağı örneği bul.",
+      "gold": [
+        "dev_04_a"
+      ],
+      "foil": [
+        "dev_04_b"
+      ]
+    },
+    {
+      "id": "dev_04b",
+      "kind": "direction",
+      "query": "Karakoldaki avukatsız anlatım yargıç önünde onaylandığından değerlendirmeye alınan pasaj hangisi?",
+      "gold": [
+        "dev_04_b"
+      ],
+      "foil": [
+        "dev_04_a"
+      ]
+    },
+    {
+      "id": "dev_05a",
+      "kind": "measure",
+      "query": "Banka hesabına bloke konulmasının geçim üzerindeki etkisinin incelenmesini konu alan metni bul.",
+      "gold": [
+        "dev_05_a"
+      ],
+      "foil": [
+        "dev_05_b"
+      ]
+    },
+    {
+      "id": "dev_05b",
+      "kind": "measure",
+      "query": "Yurt dışına seyahat kısıtlamasının aile ziyareti bakımından orantısını inceleyen bölüm hangisi?",
+      "gold": [
+        "dev_05_b"
+      ],
+      "foil": [
+        "dev_05_a"
+      ]
+    },
+    {
+      "id": "dev_06a",
+      "kind": "role",
+      "query": "Savcının talebi ile mahkemenin sonucu ayrımında tahliyeyi isteyen makamın görüşünü getir.",
+      "gold": [
+        "dev_06_a"
+      ],
+      "foil": [
+        "dev_06_b"
+      ]
+    },
+    {
+      "id": "dev_06b",
+      "kind": "role",
+      "query": "Savcının serbest bırakma talebine rağmen mahkemenin tutmayı sürdürdüğü karar bölümü hangisi?",
+      "gold": [
+        "dev_06_b"
+      ],
+      "foil": [
+        "dev_06_a"
+      ]
+    },
+    {
+      "id": "dev_07a",
+      "kind": "direction",
+      "query": "Tanığa soru sorma fırsatı verilmemesini savunma hakkına aykırı bulan pasajı bul.",
+      "gold": [
+        "dev_07_a"
+      ],
+      "foil": [
+        "dev_07_b"
+      ]
+    },
+    {
+      "id": "dev_07b",
+      "kind": "direction",
+      "query": "Suçlayan kişiye duruşmada soru yöneltme fırsatı tanındığı için ihlal görülmeyen örneği getir.",
+      "gold": [
+        "dev_07_b"
+      ],
+      "foil": [
+        "dev_07_a"
+      ]
+    },
+    {
+      "id": "dev_08a",
+      "kind": "measure",
+      "query": "Arama işlemindeki tek fotoğraf gösterme hatasını değil kişi teşhisindeki yönlendirmeyi ele alan bölümü bul.",
+      "gold": [
+        "dev_08_a"
+      ],
+      "foil": [
+        "dev_08_b"
+      ]
+    },
+    {
+      "id": "dev_08b",
+      "kind": "measure",
+      "query": "Evdeki fotoğraf albümüne el konmasının arama kararı kapsamında kalmasını tartışan metin hangisi?",
+      "gold": [
+        "dev_08_b"
+      ],
+      "foil": [
+        "dev_08_a"
+      ]
+    },
+    {
+      "id": "dev_09a",
+      "kind": "direction",
+      "query": "Kopyaların özetleri uyuşmadığı için dijital delilin bütünlüğünü kuşkulu bulan bölümü bul.",
+      "gold": [
+        "dev_09_a"
+      ],
+      "foil": [
+        "dev_09_b"
+      ]
+    },
+    {
+      "id": "dev_09b",
+      "kind": "direction",
+      "query": "Hash değerleri ve kesintisiz teslim kayıtları sayesinde elektronik verinin sağlamlığı doğrulanan pasajı getir.",
+      "gold": [
+        "dev_09_b"
+      ],
+      "foil": [
+        "dev_09_a"
+      ]
+    },
+    {
+      "id": "dev_10a",
+      "kind": "role",
+      "query": "Susmayı suçluluk belirtisi sayan sanık aleyhindeki gerekçeyi eleştiren inceleme makamını bul.",
+      "gold": [
+        "dev_10_a"
+      ],
+      "foil": [
+        "dev_10_b"
+      ]
+    },
+    {
+      "id": "dev_10b",
+      "kind": "role",
+      "query": "Sanığın yanıt vermemesini aleyhine kullanan yerel mahkeme gerekçesini aktaran bölümü bul.",
+      "gold": [
+        "dev_10_b"
+      ],
+      "foil": [
+        "dev_10_a"
+      ]
+    }
+  ]
+}

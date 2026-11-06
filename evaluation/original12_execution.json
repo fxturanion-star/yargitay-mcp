@@ -1,0 +1,9 @@
+{
+  "command": "SEMANTIK_MODEL_CACHE=/tmp/sem-eval-offline /tmp/third-env/bin/python scripts/semantic_eval.py",
+  "exit_code": 1,
+  "stdout": "Q01 | karşıt | hedef=ihbar_yetersiz | semantik_sıra=1 | BM25_sıra=4\nQ02 | karşıt | hedef=ihbar_destekli | semantik_sıra=5 | BM25_sıra=9\nQ03 | tedbir | hedef=ozgurluk | semantik_sıra=2 | BM25_sıra=10\nQ04 | tedbir | hedef=iletisim | semantik_sıra=3 | BM25_sıra=3\nQ05 | yeniden ifade | hedef=beyan | semantik_sıra=2 | BM25_sıra=14\nQ06 | yeniden ifade | hedef=tanik | semantik_sıra=4 | BM25_sıra=12\nQ07 | yeniden ifade | hedef=telefon | semantik_sıra=1 | BM25_sıra=12\nQ08 | yeniden ifade | hedef=dijital | semantik_sıra=1 | BM25_sıra=1\nQ09 | yeniden ifade | hedef=teshis | semantik_sıra=1 | BM25_sıra=11\nQ10 | yeniden ifade | hedef=konusmama | semantik_sıra=1 | BM25_sıra=13\nQ11 | tedbir | hedef=malvarligi | semantik_sıra=1 | BM25_sıra=4\nQ12 | aidiyet | hedef=karsi_oy | semantik_sıra=2 | BM25_sıra=2\n{\"soru\": 12, \"aday\": 14, \"sentetik\": true, \"semantik\": {\"top1\": 6, \"top3\": 10, \"mrr\": 0.6903}, \"BM25\": {\"top1\": 1, \"top3\": 3, \"mrr\": 0.2459}}\n",
+  "stderr": "Pilot kabul eşiği karşılanmadı.\n",
+  "script_sha256": "b12260ebc2375ba699ba31a6b13e99d34de599d1c279f7ae56c2957985fe55dc",
+  "production_semantik_sha256": "236ca8041c2a9bd969766e16cd0425feeb971238b9cbbb09e47aa7831091beef",
+  "note": "Original script executed unchanged against current production E5 after independent holdout. No acceptance threshold lowered."
+}

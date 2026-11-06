@@ -1,0 +1,646 @@
+{
+  "status": "agent_assisted_not_expert_validated",
+  "evaluation": "three fixed question/document pairs; no cross-document ranking",
+  "metric": "A question succeeds if any selected passage fully contains any labelled source span; exact_span_recall separately counts all labelled occurrences.",
+  "e5_metric": "Best-scoring passage within its own document fully contains any gold span; no voice classifier is applied.",
+  "timing": "Separate fresh process per method; one sequential pass. First E5 call includes model loading, later calls are warm. Host caches/load and execution order may affect timing.",
+  "limitations": [
+    "Purposive n=3, six short agent-labelled spans; no expert review, hidden test set, confidence interval or generalization claim.",
+    "Questions and labels fixed before this diagnostic run; selector design already existed. This is not an independent blind evaluation of selector development.",
+    "Containment is an exact-coordinate proxy. Other valid unlabelled quotations or paraphrases count as misses; retrieval of quoted lower-court reasoning is not majority attribution.",
+    "Both methods use at most 20 source passages of at most 680 characters, but their boundaries and total selected character counts differ.",
+    "Full verified source texts must be supplied separately and match their SHA-256 hashes; this script makes no network requests."
+  ],
+  "methods": [
+    {
+      "method": "baseline_uniform",
+      "budget_per_document": 20,
+      "gold_sha256": "dfb7abff6d1e79d2ebd45f5b58fb88898a0bb987fc23498267026a91e1572a7c",
+      "semantic_status": "offline_pinned_e5",
+      "cases": [
+        {
+          "id": "R01",
+          "document_id": "bedesten:498482500",
+          "passages": 20,
+          "selected_characters": 13600,
+          "gold_span_hits": 0,
+          "gold_span_count": 2,
+          "any_gold_span_contained": false,
+          "selection_ms": 0.032,
+          "selected_offsets": [
+            [
+              0,
+              680
+            ],
+            [
+              2588,
+              3268
+            ],
+            [
+              5176,
+              5856
+            ],
+            [
+              7764,
+              8444
+            ],
+            [
+              10352,
+              11032
+            ],
+            [
+              12940,
+              13620
+            ],
+            [
+              15528,
+              16208
+            ],
+            [
+              18116,
+              18796
+            ],
+            [
+              20704,
+              21384
+            ],
+            [
+              23292,
+              23972
+            ],
+            [
+              25881,
+              26561
+            ],
+            [
+              28469,
+              29149
+            ],
+            [
+              31057,
+              31737
+            ],
+            [
+              33645,
+              34325
+            ],
+            [
+              36233,
+              36913
+            ],
+            [
+              38821,
+              39501
+            ],
+            [
+              41409,
+              42089
+            ],
+            [
+              43997,
+              44677
+            ],
+            [
+              46585,
+              47265
+            ],
+            [
+              49174,
+              49854
+            ]
+          ],
+          "e5_ms": 1698.411,
+          "e5_model_load_included": true,
+          "e5_top1": {
+            "start": 36233,
+            "end": 36913,
+            "score": 0.8959536643861972,
+            "contains_gold_span": false
+          }
+        },
+        {
+          "id": "R02",
+          "document_id": "bedesten:553432600",
+          "passages": 20,
+          "selected_characters": 13600,
+          "gold_span_hits": 0,
+          "gold_span_count": 2,
+          "any_gold_span_contained": false,
+          "selection_ms": 0.043,
+          "selected_offsets": [
+            [
+              0,
+              680
+            ],
+            [
+              1788,
+              2468
+            ],
+            [
+              3576,
+              4256
+            ],
+            [
+              5365,
+              6045
+            ],
+            [
+              7153,
+              7833
+            ],
+            [
+              8941,
+              9621
+            ],
+            [
+              10730,
+              11410
+            ],
+            [
+              12518,
+              13198
+            ],
+            [
+              14306,
+              14986
+            ],
+            [
+              16095,
+              16775
+            ],
+            [
+              17883,
+              18563
+            ],
+            [
+              19672,
+              20352
+            ],
+            [
+              21460,
+              22140
+            ],
+            [
+              23248,
+              23928
+            ],
+            [
+              25037,
+              25717
+            ],
+            [
+              26825,
+              27505
+            ],
+            [
+              28613,
+              29293
+            ],
+            [
+              30402,
+              31082
+            ],
+            [
+              32190,
+              32870
+            ],
+            [
+              33979,
+              34659
+            ]
+          ],
+          "e5_ms": 710.755,
+          "e5_model_load_included": false,
+          "e5_top1": {
+            "start": 33979,
+            "end": 34659,
+            "score": 0.8824332593413962,
+            "contains_gold_span": false
+          }
+        },
+        {
+          "id": "R03",
+          "document_id": "bedesten:1163161600",
+          "passages": 20,
+          "selected_characters": 13600,
+          "gold_span_hits": 0,
+          "gold_span_count": 2,
+          "any_gold_span_contained": false,
+          "selection_ms": 0.04,
+          "selected_offsets": [
+            [
+              0,
+              680
+            ],
+            [
+              969,
+              1649
+            ],
+            [
+              1939,
+              2619
+            ],
+            [
+              2909,
+              3589
+            ],
+            [
+              3879,
+              4559
+            ],
+            [
+              4849,
+              5529
+            ],
+            [
+              5819,
+              6499
+            ],
+            [
+              6789,
+              7469
+            ],
+            [
+              7759,
+              8439
+            ],
+            [
+              8729,
+              9409
+            ],
+            [
+              9698,
+              10378
+            ],
+            [
+              10668,
+              11348
+            ],
+            [
+              11638,
+              12318
+            ],
+            [
+              12608,
+              13288
+            ],
+            [
+              13578,
+              14258
+            ],
+            [
+              14548,
+              15228
+            ],
+            [
+              15518,
+              16198
+            ],
+            [
+              16488,
+              17168
+            ],
+            [
+              17458,
+              18138
+            ],
+            [
+              18428,
+              19108
+            ]
+          ],
+          "e5_ms": 729.261,
+          "e5_model_load_included": false,
+          "e5_top1": {
+            "start": 18428,
+            "end": 19108,
+            "score": 0.8848163386123509,
+            "contains_gold_span": false
+          }
+        }
+      ],
+      "containment_recall": 0.0,
+      "exact_span_recall": 0.0,
+      "e5_top1_containment": 0.0,
+      "latency_ms": 3138.836,
+      "process_rss_before_mib": 28.98,
+      "process_rss_after_mib": 559.059,
+      "process_peak_rss_mib": 560.598
+    },
+    {
+      "method": "query_aware",
+      "budget_per_document": 20,
+      "gold_sha256": "dfb7abff6d1e79d2ebd45f5b58fb88898a0bb987fc23498267026a91e1572a7c",
+      "semantic_status": "offline_pinned_e5",
+      "cases": [
+        {
+          "id": "R01",
+          "document_id": "bedesten:498482500",
+          "passages": 20,
+          "selected_characters": 13214,
+          "gold_span_hits": 2,
+          "gold_span_count": 2,
+          "any_gold_span_contained": true,
+          "selection_ms": 16.914,
+          "selected_offsets": [
+            [
+              0,
+              678
+            ],
+            [
+              3527,
+              4199
+            ],
+            [
+              7051,
+              7713
+            ],
+            [
+              11085,
+              11751
+            ],
+            [
+              13596,
+              14264
+            ],
+            [
+              16108,
+              16779
+            ],
+            [
+              20647,
+              21321
+            ],
+            [
+              25191,
+              25857
+            ],
+            [
+              29720,
+              30392
+            ],
+            [
+              31744,
+              32414
+            ],
+            [
+              32254,
+              32920
+            ],
+            [
+              34770,
+              35447
+            ],
+            [
+              35270,
+              35948
+            ],
+            [
+              35770,
+              36445
+            ],
+            [
+              36280,
+              36950
+            ],
+            [
+              36783,
+              37455
+            ],
+            [
+              37283,
+              37957
+            ],
+            [
+              41812,
+              42485
+            ],
+            [
+              45363,
+              46029
+            ],
+            [
+              49390,
+              49854
+            ]
+          ],
+          "e5_ms": 1632.265,
+          "e5_model_load_included": true,
+          "e5_top1": {
+            "start": 35770,
+            "end": 36445,
+            "score": 0.9062290921917592,
+            "contains_gold_span": true
+          }
+        },
+        {
+          "id": "R02",
+          "document_id": "bedesten:553432600",
+          "passages": 20,
+          "selected_characters": 13440,
+          "gold_span_hits": 2,
+          "gold_span_count": 2,
+          "any_gold_span_contained": true,
+          "selection_ms": 15.21,
+          "selected_offsets": [
+            [
+              503,
+              1176
+            ],
+            [
+              1010,
+              1679
+            ],
+            [
+              1512,
+              2186
+            ],
+            [
+              4540,
+              5211
+            ],
+            [
+              7543,
+              8220
+            ],
+            [
+              10556,
+              11223
+            ],
+            [
+              14067,
+              14745
+            ],
+            [
+              16097,
+              16764
+            ],
+            [
+              17105,
+              17782
+            ],
+            [
+              18622,
+              19292
+            ],
+            [
+              20624,
+              21302
+            ],
+            [
+              22143,
+              22814
+            ],
+            [
+              24157,
+              24830
+            ],
+            [
+              25673,
+              26345
+            ],
+            [
+              27688,
+              28359
+            ],
+            [
+              28196,
+              28866
+            ],
+            [
+              30720,
+              31392
+            ],
+            [
+              32746,
+              33415
+            ],
+            [
+              33252,
+              33921
+            ],
+            [
+              33756,
+              34428
+            ]
+          ],
+          "e5_ms": 658.939,
+          "e5_model_load_included": false,
+          "e5_top1": {
+            "start": 1010,
+            "end": 1679,
+            "score": 0.912123616194478,
+            "contains_gold_span": false
+          }
+        },
+        {
+          "id": "R03",
+          "document_id": "bedesten:1163161600",
+          "passages": 20,
+          "selected_characters": 13438,
+          "gold_span_hits": 2,
+          "gold_span_count": 2,
+          "any_gold_span_contained": true,
+          "selection_ms": 8.055,
+          "selected_offsets": [
+            [
+              0,
+              673
+            ],
+            [
+              1005,
+              1681
+            ],
+            [
+              2010,
+              2684
+            ],
+            [
+              2520,
+              3188
+            ],
+            [
+              3525,
+              4200
+            ],
+            [
+              4527,
+              5202
+            ],
+            [
+              5027,
+              5701
+            ],
+            [
+              6531,
+              7207
+            ],
+            [
+              8050,
+              8722
+            ],
+            [
+              9559,
+              10233
+            ],
+            [
+              10565,
+              11241
+            ],
+            [
+              11567,
+              12245
+            ],
+            [
+              12077,
+              12734
+            ],
+            [
+              12586,
+              13251
+            ],
+            [
+              13090,
+              13757
+            ],
+            [
+              14101,
+              14768
+            ],
+            [
+              15612,
+              16286
+            ],
+            [
+              16121,
+              16792
+            ],
+            [
+              17126,
+              17799
+            ],
+            [
+              18136,
+              18809
+            ]
+          ],
+          "e5_ms": 706.792,
+          "e5_model_load_included": false,
+          "e5_top1": {
+            "start": 12077,
+            "end": 12734,
+            "score": 0.8974888508992633,
+            "contains_gold_span": true
+          }
+        }
+      ],
+      "containment_recall": 1.0,
+      "exact_span_recall": 1.0,
+      "e5_top1_containment": 0.6666666666666666,
+      "latency_ms": 3038.464,
+      "process_rss_before_mib": 29.02,
+      "process_rss_after_mib": 558.137,
+      "process_peak_rss_mib": 560.652
+    }
+  ]
+}
