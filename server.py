@@ -1,12 +1,14 @@
 """Yargıtay araştırması (Bedesten), mevzuat ve resmî belge araçları."""
 from __future__ import annotations
 
+from datetime import datetime
 import os
 import re
 from typing import Any
 
 from fastmcp import FastMCP
 import bedesten
+import kanun
 
 # Geçerli daire adları (birimYrgKurulDaire alanı için)
 DAIRELER: list[str] = (
@@ -35,7 +37,9 @@ _doc_cache: dict[str, str] = {}
 
 
 def _cache_put(karar_id: str, text: str) -> None:
-    if len(_doc_cache) >= _CACHE_MAX:
+    if _CACHE_MAX <= 0:
+        return
+    if karar_id not in _doc_cache and len(_doc_cache) >= _CACHE_MAX:
         _doc_cache.pop(next(iter(_doc_cache)))
     _doc_cache[karar_id] = text
 
@@ -73,9 +77,10 @@ async def _fetch_doc_text(karar_id: str) -> str:
     raise ValueError("Eski Yargıtay kimliği: kararı E./K. ile tekrar arayıp bedesten: kimliğini kullanın.")
 
 
-def _validate_date(value: str, name: str) -> None:
+def _validate_date(value: str, name: str) -> datetime | None:
     if value and not re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", value):
         raise ValueError(f"{name} GG.AA.YYYY formatında olmalıdır (örn. 01.01.2024).")
+    return datetime.strptime(value, "%d.%m.%Y") if value else None
 
 
 @mcp.tool
@@ -125,8 +130,10 @@ async def _do_search(
         toplam_sonuc ve kararlar listesi (id, daire, esas_no, karar_no,
         karar_tarihi). Tam metin için id'yi yargitay_karar_metni aracına verin.
     """
-    _validate_date(baslangic_tarihi, "baslangic_tarihi")
-    _validate_date(bitis_tarihi, "bitis_tarihi")
+    start = _validate_date(baslangic_tarihi, "baslangic_tarihi")
+    end = _validate_date(bitis_tarihi, "bitis_tarihi")
+    if start and end and start > end:
+        raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
     if daire:
         if daire.strip().upper() == "ALL":
             daire = ""
@@ -310,15 +317,15 @@ mcp.tool(bedesten.mevzuat_belgesi_getir)
 from turk_hukuku_mevzuat import server as mevzuat_modulu
 
 mcp.tool(
-    mevzuat_modulu.madde_getir,
+    kanun.madde_getir,
     name="mevzuat_madde_getir",
 )
 mcp.tool(
-    mevzuat_modulu.kanun_metni_getir,
+    kanun.kanun_metni_getir,
     name="mevzuat_kanun_metni_getir",
 )
 mcp.tool(
-    mevzuat_modulu.mevzuat_ara,
+    kanun.mevzuat_ara,
     name="mevzuat_ara",
 )
 mcp.tool(

@@ -39,7 +39,9 @@ Ortam değişkenleri: `PORT` (varsayılan 8000), `MCP_PATH` (varsayılan `/mcp`)
 
 ```bash
 pip install -r requirements.txt
-python test_mock.py        # mock upstream ile MCP katmanı testleri
+python test_mock.py        # ağsız MCP arama → metin testi
+python -m unittest test_audit   # hata ve sınır durumları
+python test_live.py YYYY-MM-DD  # erişilebilir bir RG tarihiyle 20 aracın canlı testi
 MCP_TRANSPORT=stdio python server.py   # stdio modunda (tek makine) çalıştırma
 ```
 
@@ -48,6 +50,8 @@ MCP_TRANSPORT=stdio python server.py   # stdio modunda (tek makine) çalıştır
 Kararlar Yargıtay'ın kamuya açık platformundan alınır; kişisel veri içerebilen
 karar metinlerinin işlenmesinde KVKK ve platformun kullanım koşullarına uyum
 kullanıcının sorumluluğundadır.
+
+Kanun araması, madde ve tam metin araçları mevzuat.gov.tr erişim hatasında Adalet Bakanlığının Bedesten kaynağını kullanır. Belge kimliği kanun türü, numarası ve tertibiyle eşleştirilir. İkincil arama yolunda başlık ve içerik birleştirildiğinde toplam kesin olarak hesaplanamıyorsa `toplam` boş döner.
 
 ## Karar ve mevzuat kaynakları
 

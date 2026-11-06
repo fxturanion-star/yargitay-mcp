@@ -21,6 +21,8 @@ TIMEOUT = httpx.Timeout(25, connect=8)
 def page(text, start):
     if start < 0 or not text.strip():
         raise ValueError("Başlangıç negatif veya belge metni boş.")
+    if start >= len(text):
+        raise ValueError("Başlangıç belge uzunluğunu aşıyor.")
     end = start + 16000
     return {"metin": text[start:end], "toplam_karakter": len(text),
             "sonraki_baslangic": end if end < len(text) else None}
@@ -133,6 +135,8 @@ async def aihm_ara(ifade: str = "", ulke: str = "", dil: str = "ENG", basvuru_no
     if ilk_tarih or son_tarih:
         lo=date.fromisoformat(ilk_tarih).isoformat()+"T00:00:00" if ilk_tarih else "*"
         hi=date.fromisoformat(son_tarih).isoformat()+"T23:59:59" if son_tarih else "*"
+        if ilk_tarih and son_tarih and lo > hi:
+            raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
         terms.append(f"(kpdate:[{lo} TO {hi}])")
     params={"query":" AND ".join(terms),"select":"itemid,docname,appno,kpdate,languageisocode,documentcollectionid2,doctype,respondent",
             "sort":"kpdate Descending","start":(sayfa-1)*adet,"length":adet}
@@ -203,15 +207,17 @@ async def yoktez_detay(kayit: str, belge: str) -> dict:
     if not any(data.get(k) for k in keys):
         raise LookupError("YÖK kayıt ayrıntısı doğrulanamadı.")
     pdf_url = None
+    pdf_status = "bağlantı bulunamadı"
     try:
         availability=await fetch(YOK+"getTezPdf.jsp",params={"kayitNo":kayit,"tezNo":belge})
         link=BeautifulSoup(availability.content,"html.parser").select_one("a[href^='TezGoster?key=']")
         if link:
             pdf_url=urljoin(YOK,link["href"])
+            pdf_status = "bağlantı bulundu"
     except httpx.HTTPError:
-        pass
+        pdf_status = "kaynağa erişilemedi"
     return {**{k:BeautifulSoup(str(data.get(k) or ""),"html.parser").get_text(" ",strip=True) for k in keys},
-            "acik_pdf":pdf_url,"kaynak":YOK+f"tezDetay.jsp?id={kayit}&no={belge}"}
+            "acik_pdf":pdf_url,"pdf_durumu":pdf_status,"kaynak":YOK+f"tezDetay.jsp?id={kayit}&no={belge}"}
 
 
 def register(mcp):

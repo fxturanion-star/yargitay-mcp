@@ -107,6 +107,8 @@ def register(mcp, fetch_yargitay):
         if not source_text:
             return {**info,"durum":"doğrulanamadı","neden":"Karar metni alınamadı."}
         if degerlendirme is None:
+            if baslangic >= len(source_text):
+                raise ValueError("Başlangıç karar uzunluğunu aşıyor.")
             return {**info,"durum":"inceleme","metin":source_text[baslangic:baslangic+16000],
                     "sonraki_baslangic":baslangic+16000 if baslangic+16000<len(source_text) else None,
                     "talimat":"Kararı ve konuşanı belirle. Destek derecesini, kaynaktan alıntıyı ve gerekçeni bu araca gönder."}
