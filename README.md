@@ -72,3 +72,11 @@ Tek madde için `mevzuat_madde_getir`, tek AYM paragrafı için `aym_paragraf_ge
 Bedesten arama yanıtlarında kararın tarihi bulunur. İndekse eklenme zamanı doğrulanamadığı için “en son eklenen” sırası üretilmez. Emsal aracı, tekil bir alıntının önceki ve sonraki metnini gösterir. Aynı ifade birden çok yerde geçtiğinde eşleşme sayısını verir; belirli bir pasajı veya konuşanı seçmez.
 
 Canlı denetimler üç bağımsız iş olarak çalışır: `core` (19 araç ve dört farklı kararın künyesi), `resmi` (yalnız resmî RG fihristi ve belgesi), `lexpera` (yalnız LEXPERA fihristi ve belgesi). Elle çalıştırmak için örneğin `python test_live.py 2026-11-06 resmi` kullanın. Her iki RG kaynağında da başarı için aynı sayıdan bir belge metninin okunması gerekir.
+
+### Resmî Gazete ve dağıtım tanısı
+
+Resmî fihrist yanıtı eksikse veya 404/410 dönerse araç aynı günün resmî arşiv sayfasını dener. Bağlantı zaman aşımında aynı kaynağa art arda istek göndermez. Başarısız resmî entegrasyon işinin sonunda GitHub günlüğünde DNS, TCP, TLS ve ilk HTTP yanıt baytı süreleri ayrı gösterilir. Proxy kullanılan bir ortamda bu süreler istemcinin gördüğü bağlantıyı ölçer.
+
+Yayımlanan kodu denetlemek için ChatGPT veya Claude'dan `yargitay_baglanti_testi(surum_kontrolu=true)` isteyin. Sunucu GitHub main üzerinde o an görünen commit'in ağaç kaydını alır, çalışan 12 dosyayı içerikleriyle karşılaştırır ve farkların adlarını bildirir. Commit kimliği çalıştırma ortamındaki Git checkout'undan veya Git arşivinin `release-revision` kaydından okunur. İkisi de yoksa dosya karşılaştırması yapılabilir, ancak kesin commit doğrulanamaz. Bu kontrol çalıştırma ortamının OAuth politikasını veya kurulu dolaylı paket sürümlerini kapsamaz.
+
+Her main push'unda `FastMCP Cloud sürüm doğrulaması` işi dağıtımın yetişmesini bekler. İşin korumalı MCP adresini çağırabilmesi için GitHub Actions repository secret olarak `FASTMCP_VERIFY_TOKEN` tanımlayın (bu sunucuya araç çağrısı yapmaya yetkili bir Gateway bearer token). Token eksikse, çalıştırma commit'i bilinmiyorsa veya dosyalar farklıysa doğrulama işi başarısız kalır. Bu iş dağıtım sonrası denetimdir.

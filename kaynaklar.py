@@ -46,24 +46,32 @@ async def resmi_gazete_fihrist(tarih: str, mukerrer: int = 0, ikincil_kaynak: bo
     if not 0 <= mukerrer <= 9:
         raise ValueError("Mükerrer sıra numarası 0–9 arasında olmalı.")
     issue = stamp + (f"M{mukerrer}" if mukerrer else "")
-    url = (root + issue + ".htm") if mukerrer else (RG + "/fihrist?tarih=" + tarih)
-    try:
-        soup = BeautifulSoup((await fetch(url)).content, "html.parser")
-        items = {}
-        for a in soup.select("a[href]"):
-            link = urljoin(url, a["href"])
-            name = urlsplit(link).path.split("/")[-1]
-            if not re.fullmatch(re.escape(issue)+r"-[0-9]+\.(?:htm|html|pdf)", name, re.I):
-                continue
-            title = " ".join(a.stripped_strings).strip("–- ")
-            if title and urlsplit(link).hostname in ("resmigazete.gov.tr", "www.resmigazete.gov.tr"):
-                items[name] = {"baslik":title,"belge":name,"kaynak":root+name}
-        if not items:
-            raise LookupError("İstenen sayı için resmî belge bağlantısı bulunamadı.")
-        return {"tarih":tarih,"mukerrer":mukerrer,"resmi_kaynak":True,"kaynak":url,"belgeler":list(items.values())}
-    except (httpx.HTTPError,LookupError) as exc:
-        if not ikincil_kaynak or mukerrer:
-            raise RuntimeError(f"Resmî fihrist doğrulanamadı: {url} ({type(exc).__name__})") from exc
+    archive = root + issue + ".htm"
+    addresses = [archive] if mukerrer else [RG + "/fihrist?tarih=" + tarih, archive]
+    for url in addresses:
+        try:
+            soup = BeautifulSoup((await fetch(url)).content, "html.parser")
+            items = {}
+            for a in soup.select("a[href]"):
+                link = urljoin(url, a["href"])
+                name = urlsplit(link).path.split("/")[-1]
+                if not re.fullmatch(re.escape(issue)+r"-[0-9]+\.(?:htm|html|pdf)", name, re.I):
+                    continue
+                title = " ".join(a.stripped_strings).strip("–- ")
+                if title and urlsplit(link).hostname in ("resmigazete.gov.tr", "www.resmigazete.gov.tr"):
+                    items[name] = {"baslik":title,"belge":name,"kaynak":root+name}
+            if items:
+                return {"tarih":tarih,"mukerrer":mukerrer,"resmi_kaynak":True,"kaynak":url,"belgeler":list(items.values())}
+            reason = "Sayıyla eşleşen belge bağlantısı bulunamadı."
+        except httpx.HTTPStatusError as exc:
+            reason = f"HTTP {exc.response.status_code}"
+            if exc.response.status_code not in (404, 410):
+                break
+        except httpx.RequestError as exc:
+            reason = f"{type(exc).__name__}: {exc}"
+            break
+    if not ikincil_kaynak or mukerrer:
+        raise RuntimeError(f"Resmî fihrist doğrulanamadı: {url} ({reason})")
     return await lexpera_fihrist(tarih)
 
 

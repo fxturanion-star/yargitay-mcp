@@ -12,6 +12,7 @@ import kanun
 import sys
 import erisim
 import upstream
+import surum
 from cachetools import TTLCache
 from fastmcp.server.middleware.rate_limiting import RateLimitingMiddleware
 from metin import sayfali_belge
@@ -314,8 +315,10 @@ mcp.tool(
     name="mevzuat_bilinen_kanunlar",
 )
 @mcp.tool(annotations={"readOnlyHint": True})
-async def yargitay_baglanti_testi() -> dict:
-    """Etkin kaynak Bedesten üzerinde bir sonuçluk gerçek CGK araması yapar."""
+async def yargitay_baglanti_testi(surum_kontrolu: bool = False) -> dict:
+    """Bedesten üzerinde CGK araması yapar. surum_kontrolu=true yalnız çalışan kodu GitHub main ile karşılaştırır."""
+    if surum_kontrolu:
+        return await surum.kontrol()
     sonuc = await _do_search(daire="Ceza Genel Kurulu", sayfa_boyutu=1)
     return {"kaynak": sonuc["kaynak"], "toplam": sonuc["toplam_sonuc"], "ilk": sonuc["kararlar"]}
 

@@ -64,8 +64,8 @@ async def request(client, method, url, **kwargs):
                 # İçerik zaten açıldı; Content-Encoding ikinci kez uygulanmasın.
                 return httpx.Response(status, content=bytes(body), request=response.request,
                                       headers={"Content-Type": response.headers.get("Content-Type", "")})
-        except httpx.TransportError:
-            gate.status = "bağlantı hatası"
+        except httpx.TransportError as exc:
+            gate.status = type(exc).__name__
             gate.blocked_until = time.monotonic() + 30
             raise
 
