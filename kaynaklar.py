@@ -125,7 +125,9 @@ async def aihm_ara(ifade: str = "", ulke: str = "", dil: str = "ENG", basvuru_no
     if not 1<=adet<=50 or sayfa<1:
         raise ValueError("Sayfa veya adet geçersiz.")
     terms = ["(contentsitename:ECHR)",f"(documentcollectionid2:{literal(koleksiyon)})",f"(languageisocode:{literal(dil)})"]
-    for key,val in (("respondent",ulke),("appno",basvuru_no),("fulltext",ifade)):
+    if ifade.strip():
+        terms.append(f"({literal(ifade.strip())})")
+    for key,val in (("respondent",ulke),("appno",basvuru_no)):
         if val:
             terms.append(f"({key}:{literal(val)})")
     if ilk_tarih or son_tarih:
