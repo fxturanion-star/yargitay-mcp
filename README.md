@@ -61,3 +61,7 @@ Kanun araması, madde ve tam metin araçları mevzuat.gov.tr erişim hatasında 
 
 - `aym_ara` Anayasa Mahkemesi bireysel başvurularını tarar. `aym_paragraf_getir` başvuru numarası veya arama kimliğiyle resmî metinde tekil olarak bulunan numaralı paragrafı verir. Belirsiz numara için kaynak sayfasına başvurun.
 - `emsal_dogrula` iki aşamalıdır. Önce önermeyi ve kararı verip metni okuyun (uzun metinde sayfalayın). Ardından metinden alıntı, pasajın sahibi, gerekçe ve destek derecesini iletin. Sunucu boşlukları normalleştirerek alıntıyı kaynak metinle karşılaştırır. Önerme hakkında hukuki değerlendirme ve pasajın aidiyeti sohbet modeline aittir. Karşıoy ve alıntılanan başka karar, çoğunluk görüşüyle karıştırılmamalıdır.
+
+### Uzun belgeleri ekonomik okuma
+
+Tek madde için `mevzuat_madde_getir`, tek AYM paragrafı için `aym_paragraf_getir` kullanın. Yargıtay araştırmasında önce az sayıda künye isteyin. Kararı veya kanunu okumak için `yargitay_karar_metni` ve `mevzuat_kanun_metni_getir` araçlarına isteğe bağlı `karakter_sayisi` (1–20000) verilebilir. Örneğin ilk 4.000 karakter için `{"kanun":"CMK","karakter_sayisi":4000}` gönderin. Devamı gerektiğinde aynı parametrelerle yanıttaki `sonraki_baslangic` değerini `baslangic` olarak gönderin. Sayfaları birleştirirken her yanıtta aynı `metin_surumu` değerini arayın; değer değişirse metni baştan okuyun. Son sayfada `sonraki_baslangic` `null` olur. Parametresiz eski çağrılar tam metni verir. Toplu aramada `pencere` yalnızca bir pasaj gösterir; kararın bütününe dayalı değerlendirme için tam metne başvurun.

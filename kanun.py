@@ -2,6 +2,7 @@
 import re
 
 import bedesten
+from metin import sayfali_belge
 from turk_hukuku_mevzuat import registry, server as primary
 from turk_hukuku_mevzuat.ortak import ErisimDurdu, KaynakHatasi
 
@@ -58,15 +59,16 @@ async def mevzuat_ara(ifade: str, nerede: str = "Baslik", adet: int = 10) -> dic
             "kaynak": bedesten.SITE}
 
 
-async def kanun_metni_getir(kanun: str) -> dict:
-    """Kanun numarası, kısaltma veya tam kimlikle kaynak bağlantısı ve tam metnini getir."""
+async def kanun_metni_getir(kanun: str, baslangic: int = 0, karakter_sayisi: int | None = None) -> dict:
+    """Kanunu numara, kısaltma veya tam kimlikle oku. Tek madde için mevzuat_madde_getir kullan.
+    İlk incelemede karakter_sayisi=4000, devamında sonraki_baslangic kullan. Sınır verilmezse tam metin döner."""
     try:
-        return await primary.kanun_metni_getir(kanun)
+        belge = await primary.kanun_metni_getir(kanun)
     except (KaynakHatasi, ErisimDurdu):
-        pass
-    doc, card = await _resolve(kanun)
-    text = await bedesten.document(doc, law=True)
-    return {**card, "uzunluk": len(text), "metin": text}
+        doc, card = await _resolve(kanun)
+        text = await bedesten.document(doc, law=True)
+        belge = {**card, "uzunluk": len(text), "metin": text}
+    return sayfali_belge(belge, baslangic, karakter_sayisi)
 
 
 def _article_ids(node, doc, number):

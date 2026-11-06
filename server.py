@@ -9,6 +9,7 @@ from typing import Any
 from fastmcp import FastMCP
 import bedesten
 import kanun
+from metin import sayfali_belge
 
 # Geçerli daire adları (birimYrgKurulDaire alanı için)
 DAIRELER: list[str] = (
@@ -52,13 +53,20 @@ def _keyword_windows(text: str, keyword: str, window: int = 700, max_hits: int =
     terms = [t for t in re.split(r"\s+", core) if len(t) > 2] or [core]
     pattern = re.compile("|".join(re.escape(t) for t in terms), re.IGNORECASE)
     spans: list[tuple[int, int]] = []
+    budget = 2 * window * max_hits
+    covered = 0
     for m in pattern.finditer(text):
         start, end = max(0, m.start() - window), min(len(text), m.end() + window)
         if spans and start <= spans[-1][1]:
+            previous_end = spans[-1][1]
+            end = min(end, previous_end + budget - covered)
+            covered += end - previous_end
             spans[-1] = (spans[-1][0], end)
         else:
+            end = min(end, start + budget - covered)
             spans.append((start, end))
-        if len(spans) >= max_hits:
+            covered += end - start
+        if len(spans) >= max_hits or covered >= budget:
             break
     if not spans:
         return text[: 2 * window]
@@ -181,27 +189,8 @@ async def yargitay_karar_ara(
     sayfa: int = 1,
     sayfa_boyutu: int = 10,
 ) -> dict:
-    """Yargıtay kararlarında detaylı arama yapar (yalnızca künye listesi döner).
-
-    Metinlerle birlikte TOPLU araştırma için yargitay_toplu_arastirma aracını
-    tercih edin — çok daha hızlıdır (tek çağrıda arama + metinler).
-
-    Args:
-        aranan_kelime: Aranacak kelime/ifade. Kesin ifade için çift tırnak:
-            "elektrik piyasası".
-        daire: Daire/kurul adı (örn. "3. Hukuk Dairesi", "Hukuk Genel Kurulu").
-            Boş bırakılırsa tüm daireler. Geçerli adlar: yargitay_daire_listesi.
-        esas_yil: Esas yılı (YYYY).
-        esas_ilk_sira_no: Esas ilk sıra no.
-        esas_son_sira_no: Esas son sıra no.
-        karar_yil: Karar yılı (YYYY).
-        karar_ilk_sira_no: Karar ilk sıra no.
-        karar_son_sira_no: Karar son sıra no.
-        baslangic_tarihi: Karar tarihi aralığı başlangıcı, GG.AA.YYYY.
-        bitis_tarihi: Karar tarihi aralığı sonu, GG.AA.YYYY.
-        sayfa: Sonuç sayfası (1'den başlar).
-        sayfa_boyutu: Sayfa başına sonuç (1-100).
-    """
+    """Bedesten’de Yargıtay künyelerini ara. Kesin ifadeyi çift tırnağa al. Tarihler GG.AA.YYYY;
+    kesin sıra numarası için iki sınırı eşit ver. Sayfa boyutu 1–100. Metin için seçilen id’yi kullan."""
     return await _do_search(
         aranan_kelime, daire, esas_yil, esas_ilk_sira_no, esas_son_sira_no,
         karar_yil, karar_ilk_sira_no, karar_son_sira_no,
@@ -219,27 +208,8 @@ async def yargitay_toplu_arastirma(
     metin_sayisi: int = 5,
     metin_bicimi: str = "pencere",
 ) -> dict:
-    """TEK ÇAĞRIDA emsal araştırması: arama + ilk N kararın metni birlikte döner.
-
-    Karar karar ayrı çağrı yapmak yerine bunu kullanın — sunucu metinleri
-    kendi içinde (hız sınırına uyarak) toplar ve tek pakette döndürür.
-    Önbellek sayesinde tekrarlanan kararlar anında gelir.
-
-    Args:
-        aranan_kelime: Aranacak kelime/ifade. Kesin ifade için çift tırnak:
-            "elektrik piyasası". Zorunlu.
-        daire: Daire/kurul adı (boş = tüm daireler).
-        baslangic_tarihi: Karar tarihi aralığı başlangıcı, GG.AA.YYYY.
-        bitis_tarihi: Karar tarihi aralığı sonu, GG.AA.YYYY.
-        sonuc_sayisi: Künyesi listelenecek karar sayısı (1-100, varsayılan 30).
-        metin_sayisi: Metni getirilecek karar sayısı (0-10, varsayılan 5).
-            Not: her metin kaynak siteden ~3 sn sürer; 10 metin ≈ 30 sn.
-        metin_bicimi: "pencere" = aranan ifadenin geçtiği bölümler (varsayılan,
-            önerilen — pakete daha çok karar sığar) | "tam" = kararın tamamı.
-
-    Returns:
-        toplam_sonuc, kararlar (künye listesi) ve metinler (id + metin).
-    """
+    """Künye ve eşleşme pasajlarını getir. İlk taramada sonuc_sayisi=5, metin_sayisi=1 önerilir.
+    Tarihler GG.AA.YYYY. En çok 100 künye, 10 metin. metin_bicimi: pencere veya tam."""
     if not aranan_kelime.strip():
         raise ValueError("aranan_kelime boş olamaz.")
     sonuc_sayisi = min(100, max(1, int(sonuc_sayisi)))
@@ -286,15 +256,9 @@ async def yargitay_toplu_arastirma(
 
 
 @mcp.tool
-async def yargitay_karar_metni(karar_id: str) -> dict:
-    """Bir Yargıtay kararının tam metnini getirir.
-
-    Args:
-        karar_id: yargitay_karar_ara sonucundaki 'id' değeri.
-
-    Returns:
-        Kararın düz metin hâli ve kaynak URL'si.
-    """
+async def yargitay_karar_metni(karar_id: str, baslangic: int = 0, karakter_sayisi: int | None = None) -> dict:
+    """Aramadan seçilen id ile karar metnini oku. İlk incelemede karakter_sayisi=4000 kullan;
+    sonraki_baslangic ile devam et. Sınır verilmezse tam metin döner."""
     karar_id = str(karar_id).strip()
     if not re.fullmatch(r"(?:bedesten:)?[0-9]{1,20}", karar_id):
         raise ValueError("karar_id sayısal bir kimlik olmalıdır (arama sonucundaki 'id').")
@@ -305,11 +269,11 @@ async def yargitay_karar_metni(karar_id: str) -> dict:
             "metin": "",
             "uyari": "Belge boş döndü; id geçersiz veya belge kaldırılmış olabilir.",
         }
-    return {
+    return sayfali_belge({
         "id": karar_id,
         "kaynak": f"{bedesten.SITE}/ictihat/{karar_id.removeprefix('bedesten:')}",
         "metin": text,
-    }
+    }, baslangic, karakter_sayisi)
 
 mcp.tool(bedesten.mevzuat_genel_ara)
 mcp.tool(bedesten.mevzuat_belgesi_getir)
