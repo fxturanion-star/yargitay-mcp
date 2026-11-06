@@ -49,10 +49,10 @@ class EvidenceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("E./K. doğrulandı", status)
 
     async def test_quote_integrity_and_location(self):
-        text = "Çoğunluk: Ortak cümle. Delil yeterli. Karşıoy: Ortak cümle. Delil yetersiz."
+        text = "Çoğunluk: Ortak cümle. Delil yeterli. Karşıoy: Ortak cümle. Delil yetersiz. AAA"
         with patch.object(server, "_fetch_doc_text", AsyncMock(return_value=text)):
             async with Client(server.mcp) as c:
-                for quote, count in [("Ortak cümle.", 2), ("Delil yetersiz.", 1), ("Delil yeterli. Delil yetersiz.", 0)]:
+                for quote, count in [("Ortak cümle.", 2), ("AA", 2), ("Delil yetersiz.", 1), ("Delil yeterli. Delil yetersiz.", 0)]:
                     out = (await c.call_tool("emsal_dogrula", {"karar_id":"bedesten:1",
                         "onerme":"Delilin yeterliliği", "alinti":quote})).data
                     self.assertEqual(out["alinti_eslesme_sayisi"], count)

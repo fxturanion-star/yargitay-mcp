@@ -5,6 +5,7 @@ import kaynaklar
 from datetime import date
 
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from server import mcp
 
 
@@ -12,14 +13,26 @@ async def audit(client, issue):
     tested = set()
 
     async def call(name, **params):
-        result = await client.call_tool(name, params)
+        try:
+            result = await client.call_tool(name, params)
+        except ToolError:
+            # Bedesten 429 için kaynağın bildirdiği süreyi yalnızca bir kez bekle.
+            if name not in {"emsal_dogrula", "yargitay_karar_ara", "yargitay_karar_metni",
+                            "yargitay_toplu_arastirma", "yargitay_baglanti_testi"}:
+                raise
+            health = (await client.call_tool("kaynak_durumu", {})).data["Bedesten"]
+            wait = health["bekleme_saniye"]
+            if health["son_http_durumu"] != "HTTP 429" or not 0 < wait <= 120:
+                raise
+            print(f"Bedesten HTTP 429; {wait} saniye bekleniyor: {name}", flush=True)
+            await asyncio.sleep(wait + 1)
+            result = await client.call_tool(name, params)
         tested.add(name)
         print(name, flush=True)
         return result.data
 
     assert "Bedesten" in await call("kaynak_durumu")
     assert "Ceza Genel Kurulu" in (await call("yargitay_daire_listesi"))["daireler"]
-    assert (await call("yargitay_baglanti_testi"))["ilk"]
     # Bilinen bir resmî belgeyi süreç başlangıcında, önce aramadan çöz.
     samples = [
         ("75719900", "Ceza Genel Kurulu", "2011/245", "2012/61", "28.02.2012"),
@@ -28,11 +41,13 @@ async def audit(client, issue):
         ("1018167800", "1. Ceza Dairesi", "2022/8669", "2024/1416", "04.03.2024"),
     ]
     for identifier, court, case, decision, day in samples:
+        await asyncio.sleep(8)
         cold = await call("emsal_dogrula", karar_id="bedesten:"+identifier, onerme="Karar künyesini incele")
         actual = cold["kunye"]
         assert (actual["daire"], actual["esas_no"], actual["karar_no"], actual["karar_tarihi"]) == (court, case, decision, day)
         assert "E./K. doğrulandı" in cold["kunye_durumu"]
         print("Künye:", identifier, actual, flush=True)
+    assert (await call("yargitay_baglanti_testi"))["ilk"]
     for court in ("Ceza Genel Kurulu", "1. Ceza Dairesi"):
         newest = await call("yargitay_karar_ara", daire=court, sayfa_boyutu=3, en_yeni=True)
         assert newest["tarih_olcutu"] == "karar_tarihi" and newest["indekse_eklenme_sirasi_dogrulandi"] is False

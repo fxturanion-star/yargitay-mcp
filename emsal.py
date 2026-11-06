@@ -118,7 +118,8 @@ def register(mcp, fetch_yargitay):
 
         quote = " ".join(alinti.split())
         if quote:
-            count = source_text.count(quote)
+            # Count overlapping literal matches too, so an ambiguous passage never gets one context.
+            count = sum(1 for _ in re.finditer(f"(?={re.escape(quote)})", source_text))
             info.update(alinti_dogrulandi=count > 0, alinti_eslesme_sayisi=count)
             if count == 1:
                 start = source_text.index(quote)
