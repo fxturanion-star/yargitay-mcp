@@ -468,6 +468,73 @@ mcp.tool(
     mevzuat_modulu.bilinen_kanunlar,
     name="mevzuat_bilinen_kanunlar",
 )
+@mcp.tool(annotations={"readOnlyHint": True})
+async def yargitay_baglanti_testi() -> dict:
+    """Yargıtay'a DNS, TCP ve HTTPS erişimini test eder."""
+    import asyncio
+    import socket
+    import httpx
+
+    host = "karararama.yargitay.gov.tr"
+
+    def hata(exc):
+        zincir = []
+        for _ in range(6):
+            if exc is None:
+                break
+            zincir.append(
+                f"{type(exc).__name__}: {str(exc)[:300]}"
+            )
+            exc = exc.__cause__ or exc.__context__
+        return zincir
+
+    sonuc = {}
+
+    try:
+        kayitlar = await asyncio.wait_for(
+            asyncio.get_running_loop().getaddrinfo(
+                host, 443, type=socket.SOCK_STREAM
+            ),
+            timeout=5,
+        )
+        sonuc["dns"] = sorted({k[4][0] for k in kayitlar})
+    except Exception as exc:
+        sonuc["dns_hatasi"] = hata(exc)
+
+    async def tcp(aile):
+        try:
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(
+                    host, 443, family=aile
+                ),
+                timeout=5,
+            )
+            writer.close()
+            await writer.wait_closed()
+            return "Baglanti kuruldu"
+        except Exception as exc:
+            return hata(exc)
+
+    sonuc["tcp_ipv4"], sonuc["tcp_ipv6"] = (
+        await asyncio.gather(
+            tcp(socket.AF_INET),
+            tcp(socket.AF_INET6),
+        )
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(10, connect=5),
+            follow_redirects=False,
+        ) as client:
+            async with client.stream(
+                "GET", f"https://{host}/"
+            ) as response:
+                sonuc["https_durumu"] = response.status_code
+    except Exception as exc:
+        sonuc["https_hatasi"] = hata(exc)
+
+    return sonuc
 if __name__ == "__main__":
     transport = os.environ.get("MCP_TRANSPORT", "http")
     if transport == "stdio":
