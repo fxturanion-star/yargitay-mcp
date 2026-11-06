@@ -450,7 +450,24 @@ async def yargitay_karar_metni(karar_id: str) -> dict:
         "metin": text,
     }
 
+from turk_hukuku_mevzuat import server as mevzuat_modulu
 
+mcp.tool(
+    mevzuat_modulu.madde_getir,
+    name="mevzuat_madde_getir",
+)
+mcp.tool(
+    mevzuat_modulu.kanun_metni_getir,
+    name="mevzuat_kanun_metni_getir",
+)
+mcp.tool(
+    mevzuat_modulu.mevzuat_ara,
+    name="mevzuat_ara",
+)
+mcp.tool(
+    mevzuat_modulu.bilinen_kanunlar,
+    name="mevzuat_bilinen_kanunlar",
+)
 if __name__ == "__main__":
     transport = os.environ.get("MCP_TRANSPORT", "http")
     if transport == "stdio":
