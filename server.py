@@ -29,6 +29,7 @@ from typing import Any, Optional
 import httpx
 from bs4 import BeautifulSoup
 from fastmcp import FastMCP
+import bedesten
 
 BASE_URL = "https://karararama.yargitay.gov.tr"
 MIN_INTERVAL = float(os.environ.get("YARGITAY_MIN_INTERVAL", "3.0"))
@@ -105,7 +106,7 @@ async def _get_client() -> httpx.AsyncClient:
     async with _client_lock:
         if _client is None or _client.is_closed:
             candidate = httpx.AsyncClient(
-                base_url=BASE_URL, headers=HEADERS, timeout=TIMEOUT,
+                base_url=BASE_URL, headers=HEADERS, timeout=httpx.Timeout(TIMEOUT, connect=6),
                 follow_redirects=True,
             )
             try:
@@ -190,6 +191,10 @@ async def _fetch_doc_text(karar_id: str) -> str:
     """Karar metnini önbellekten veya siteden getirir."""
     if karar_id in _doc_cache:
         return _doc_cache[karar_id]
+    if karar_id.startswith("bedesten:"):
+        text = await bedesten.document(karar_id.removeprefix("bedesten:"))
+        _cache_put(karar_id, text)
+        return text
     payload = await _request("GET", "/getDokuman", params={"id": karar_id})
     html = (payload or {}).get("data") or ""
     text = _html_to_text(html) if html else ""
@@ -282,7 +287,12 @@ async def _do_search(
         if val:
             data[key] = str(val)
 
-    payload = await _request("POST", "/aramadetaylist", json={"data": data})
+    try:
+        payload = await _request("POST", "/aramadetaylist", json={"data": data})
+    except RuntimeError as exc:
+        if not isinstance(exc.__cause__, (httpx.ConnectError, httpx.ConnectTimeout)):
+            raise
+        return await bedesten.judgments(data)
     inner = payload.get("data") if isinstance(payload, dict) else None
     if not isinstance(inner, dict) or not isinstance(inner.get("data"), list):
         raise RuntimeError("Yargıtay beklenen karar listesini döndürmedi; sonuç sayısı doğrulanamadı.")
@@ -444,7 +454,7 @@ async def yargitay_karar_metni(karar_id: str) -> dict:
         Kararın düz metin hâli ve kaynak URL'si.
     """
     karar_id = str(karar_id).strip()
-    if not re.fullmatch(r"\d{1,20}", karar_id):
+    if not re.fullmatch(r"(?:bedesten:)?[0-9]{1,20}", karar_id):
         raise ValueError("karar_id sayısal bir kimlik olmalıdır (arama sonucundaki 'id').")
     text = await _fetch_doc_text(karar_id)
     if not text:
@@ -455,9 +465,12 @@ async def yargitay_karar_metni(karar_id: str) -> dict:
         }
     return {
         "id": karar_id,
-        "kaynak": f"{BASE_URL}/getDokuman?id={karar_id}",
+        "kaynak": (f"{bedesten.SITE}/ictihat/{karar_id.removeprefix('bedesten:')}" if karar_id.startswith("bedesten:") else f"{BASE_URL}/getDokuman?id={karar_id}"),
         "metin": text,
     }
+
+mcp.tool(bedesten.mevzuat_genel_ara)
+mcp.tool(bedesten.mevzuat_belgesi_getir)
 
 from turk_hukuku_mevzuat import server as mevzuat_modulu
 

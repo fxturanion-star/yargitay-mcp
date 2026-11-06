@@ -68,3 +68,9 @@ MCP_TRANSPORT=stdio python server.py   # stdio modunda (tek makine) çalıştır
 Kararlar Yargıtay'ın kamuya açık platformundan alınır; kişisel veri içerebilen
 karar metinlerinin işlenmesinde KVKK ve platformun kullanım koşullarına uyum
 kullanıcının sorumluluğundadır.
+
+## Karar ve mevzuat kaynakları
+
+Karar aramasında Yargıtay sitesine bağlantı kurulamazsa sunucu Adalet Bakanlığının Bedesten servisinde YARGITAYKARARI türünü arar. Bedesten sonuçlarının kimliği `bedesten:` ile başlar. Kimliği değiştirmeden karar metni aracına verin. Sonuç sayısı sorgulanan kaynağa aittir. İki indeksin kapsadığı kararlar farklı olabilir. Bedesten kesin esas/karar sıra numarasını destekler; sıra numarası aralığı için asıl kaynak gerekir.
+
+`mevzuat_genel_ara` Bakanlığın indeksindeki mevzuatı sayfalayarak arar. Türü boş bırakınca farklı mevzuat türleri birlikte aranır; mülga kayıtlar da çıkabilir. `mevzuat_belgesi_getir` sonuçtaki belge kimliğiyle metni ve resmî bağlantıyı getirir. Uzun belgelerde sonraki_baslangic değerini kullanın. Yürürlük durumunu ve değişiklik notlarını kaynak belge üzerinden doğrulayın.
