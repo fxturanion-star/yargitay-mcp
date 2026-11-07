@@ -40,7 +40,7 @@ mcp = FastMCP(
 
 
 mcp.add_middleware(RateLimitingMiddleware(max_requests_per_second=5, burst_capacity=60, global_limit=True))
-mcp.tool(upstream.kaynak_durumu)
+mcp.tool(upstream.kaynak_durumu, annotations={"readOnlyHint": True})
 
 # Karar metni önbelleği (id -> düz metin). Aynı oturumda tekrar istenen
 # kararlar siteye gidilmeden döner.
@@ -103,7 +103,7 @@ def _validate_date(value: str, name: str) -> datetime | None:
     return datetime.strptime(value, "%d.%m.%Y") if value else None
 
 
-@mcp.tool
+@mcp.tool(annotations={"readOnlyHint": True})
 async def yargitay_daire_listesi() -> dict:
     """Yargıtay karar aramasında kullanılabilecek geçerli daire/kurul adlarını döndürür.
 
@@ -191,7 +191,7 @@ async def _do_search(
     return await bedesten.judgments(data)
 
 
-@mcp.tool
+@mcp.tool(annotations={"readOnlyHint": True})
 async def yargitay_karar_ara(
     aranan_kelime: str = "",
     daire: str = "",
@@ -216,7 +216,7 @@ async def yargitay_karar_ara(
     )
 
 
-@mcp.tool
+@mcp.tool(annotations={"readOnlyHint": True})
 async def yargitay_toplu_arastirma(
     aranan_kelime: str,
     daire: str = "",
@@ -279,7 +279,7 @@ async def yargitay_toplu_arastirma(
     return out
 
 
-@mcp.tool
+@mcp.tool(annotations={"readOnlyHint": True})
 async def yargitay_karar_metni(karar_id: str, baslangic: int = 0, karakter_sayisi: int | None = 4000) -> dict:
     """Aramadan seçilen id ile karar metnini oku. İlk incelemede karakter_sayisi=4000 kullan;
     sonraki_baslangic ile devam et. Varsayılan 4000; tam metin için karakter_sayisi=null."""
@@ -299,26 +299,30 @@ async def yargitay_karar_metni(karar_id: str, baslangic: int = 0, karakter_sayis
         "metin": text,
     }, baslangic, karakter_sayisi)
 
-mcp.tool(bedesten.mevzuat_genel_ara)
-mcp.tool(bedesten.mevzuat_belgesi_getir)
+mcp.tool(bedesten.mevzuat_genel_ara, annotations={"readOnlyHint": True})
+mcp.tool(bedesten.mevzuat_belgesi_getir, annotations={"readOnlyHint": True})
 
 from turk_hukuku_mevzuat import server as mevzuat_modulu
 
 mcp.tool(
     kanun.madde_getir,
     name="mevzuat_madde_getir",
+    annotations={"readOnlyHint": True},
 )
 mcp.tool(
     kanun.kanun_metni_getir,
     name="mevzuat_kanun_metni_getir",
+    annotations={"readOnlyHint": True},
 )
 mcp.tool(
     kanun.mevzuat_ara,
     name="mevzuat_ara",
+    annotations={"readOnlyHint": True},
 )
 mcp.tool(
     mevzuat_modulu.bilinen_kanunlar,
     name="mevzuat_bilinen_kanunlar",
+    annotations={"readOnlyHint": True},
 )
 @mcp.tool(annotations={"readOnlyHint": True})
 async def yargitay_baglanti_testi(surum_kontrolu: bool = False, arac_listesi: bool = False) -> dict:

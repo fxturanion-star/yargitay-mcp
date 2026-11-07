@@ -1,4 +1,5 @@
 """Bireysel başvuru araştırması ve kaynağa dayalı önerme denetimi."""
+import asyncio
 import re
 import uuid
 from typing import Literal
@@ -74,10 +75,14 @@ def _paras(html):
 async def aym_paragraf_getir(karar_id: str, paragraf_no: int) -> dict:
     """AYM başvuru no veya UUID ile kaynağın açıkça numaralandırdığı paragrafı getirir."""
     row = await _decision(karar_id)
-    matches = _paras(row["icerik"]).get(paragraf_no,[])
+    matches = (await asyncio.to_thread(_paras, row["icerik"])).get(paragraf_no,[])
     if len(matches)!=1:
         raise LookupError("Paragraf bulunamadı veya numara birden fazla bölümde kullanılmış.")
     return {**_card(row),"paragraf":paragraf_no,"metin":matches[0]}
+
+
+def _html_text(html):
+    return BeautifulSoup(html,"html.parser").get_text(" ",strip=True)
 
 
 def register(mcp, fetch_yargitay):
@@ -100,7 +105,7 @@ def register(mcp, fetch_yargitay):
                 doc = await aym_paragraf_getir(karar_id,paragraf_no)
             else:
                 row = await _decision(karar_id)
-                doc = {**_card(row),"metin":BeautifulSoup(row["icerik"],"html.parser").get_text(" ",strip=True)}
+                doc = {**_card(row),"metin":await asyncio.to_thread(_html_text, row["icerik"])}
         else:
             if paragraf_no is not None:
                 raise ValueError("Yargıtay için kaynaksız paragraf numarası kullanılamaz.")

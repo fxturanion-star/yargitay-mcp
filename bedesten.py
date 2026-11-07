@@ -160,20 +160,24 @@ async def document(doc, law=False, article=False):
     except (binascii.Error, ValueError) as exc:
         raise ValueError("Bedesten belge kodlaması doğrulanamadı.") from exc
     mime = str(data.get("mimeType") or data.get("mimetype") or "").lower()
-    if raw.startswith(b"%PDF"):
-        import io
-        from pypdf import PdfReader
-        text = "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(raw)).pages)
-    elif "html" in mime or raw.lstrip().startswith(b"<"):
-        soup = BeautifulSoup(raw, "html.parser", from_encoding="utf-8")
-        for tag in soup(["style","script"]):
-            tag.decompose()
-        text = soup.get_text(" ", strip=True)
-    else:
-        raise ValueError("Belge biçimi desteklenmiyor: "+mime)
+    # PDF/HTML ayrıştırması CPU yoğundur; olay döngüsünü diğer isteklere açık tut.
+    text = await asyncio.to_thread(_document_text, raw, mime)
     if not text.strip():
         raise ValueError("Kaynak okunabilir metin döndürmedi.")
     return text
+
+
+def _document_text(raw, mime):
+    if raw.startswith(b"%PDF"):
+        import io
+        from pypdf import PdfReader
+        return "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(raw)).pages)
+    if "html" in mime or raw.lstrip().startswith(b"<"):
+        soup = BeautifulSoup(raw, "html.parser", from_encoding="utf-8")
+        for tag in soup(["style","script"]):
+            tag.decompose()
+        return soup.get_text(" ", strip=True)
+    raise ValueError("Belge biçimi desteklenmiyor: "+mime)
 
 
 async def mevzuat_genel_ara(ifade: str, tur: str = "", sayfa: int = 1, adet: int = 10) -> dict:
