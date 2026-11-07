@@ -1,0 +1,46 @@
+name: Geçici mevzuat.gov.tr tanısı
+on:
+  push:
+    branches: [claude/tani-mevzuat]
+permissions:
+  contents: read
+jobs:
+  tani:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -q -r requirements.txt
+      - name: Ağ aşamaları
+        run: |
+          for u in https://www.mevzuat.gov.tr/ https://www.mevzuat.gov.tr/MevzuatMetin/1.5.5271.pdf https://bedesten.adalet.gov.tr/; do
+            for i in 1 2 3; do
+              curl -sS --connect-timeout 10 --max-time 40 -o /dev/null -A "turk-hukuku-mevzuat-mcp/0.1.4" \
+                -w "$u #$i HTTP=%{http_code} DNS=%{time_namelookup} TCP=%{time_connect} TLS=%{time_appconnect} FIRST_BYTE=%{time_starttransfer} TOTAL=%{time_total} SIZE=%{size_download}\n" "$u" || true
+            done
+          done
+      - name: Birincil paket ve yedek
+        run: |
+          python - <<'PY'
+          import asyncio, time
+          from turk_hukuku_mevzuat import server as p
+          import kanun
+          async def olc(ad, coro):
+              t = time.monotonic()
+              try:
+                  r = await coro
+                  src = str(r.get("kaynak", "")) if isinstance(r, dict) else ""
+                  print(f"{ad}: OK {time.monotonic()-t:.1f}s kaynak={src[:70]}")
+              except Exception as e:
+                  print(f"{ad}: HATA {time.monotonic()-t:.1f}s {type(e).__name__}: {str(e)[:160]}")
+          async def main():
+              await olc("birincil madde CMK 116", p.madde_getir("CMK", 116))
+              await olc("birincil arama", p.mevzuat_ara("Ceza Muhakemesi Kanunu", "Baslik", 5))
+              await olc("birincil tam metin 5271", p.kanun_metni_getir("5271"))
+              await olc("uygulama madde (yedekli)", kanun.madde_getir("CMK", 116))
+          asyncio.run(main())
+          PY
