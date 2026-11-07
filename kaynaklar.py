@@ -1,4 +1,5 @@
 """Resmî Gazete, AİHM HUDOC ve YÖK Ulusal Tez Merkezi araçları."""
+import asyncio
 import io
 import json
 import re
@@ -103,27 +104,37 @@ async def resmi_gazete_belgesi(belge: str, baslangic: int = 0) -> dict:
         if not re.fullmatch(r"[a-z0-9-]{1,400}",slug):
             raise ValueError("İkincil fihristteki belge kodunu kullanın.")
         url="https://www.lexpera.com.tr/resmi-gazete/metin/"+slug
-        soup=BeautifulSoup((await fetch(url)).content,"html.parser")
-        article=soup.select_one(".document-content-wrapper")
-        if not article:
-            raise LookupError("İkincil kaynaktan açık metin alınamadı.")
-        return {"resmi_kaynak":False,"kaynak":url,**page(article.get_text(" ",strip=True),baslangic)}
+        content=(await fetch(url)).content
+        text=await asyncio.to_thread(_lexpera_text, content)
+        return {"resmi_kaynak":False,"kaynak":url,**page(text,baslangic)}
     m = re.fullmatch(r"(\d{4})(\d{2})(\d{2})(?:M[1-9])?-\d+\.(?:htm|html|pdf)", belge, re.I)
     if not m:
         raise ValueError("Fihristteki belge adını kullanın.")
     _, root = rg_date("-".join(m.groups()))
     url = root + belge
     r = await fetch(url)
-    if r.content.startswith(b"%PDF"):
-        text = "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(r.content)).pages)
-    else:
-        soup = BeautifulSoup(r.content,"html.parser")
-        for tag in soup(["head","script","style","nav","footer"]):
-            tag.decompose()
-        text = soup.get_text(" ",strip=True)
-        if not re.search(r"resm[îi]\s+gazete",text,re.I) or not re.search(r"madde|karar|tebliğ|yönetmelik",text,re.I):
-            raise LookupError("Resmî yayım metni doğrulanamadı.")
+    # PDF/HTML ayrıştırması olay döngüsünü bloke etmesin.
+    text = await asyncio.to_thread(_gazette_text, r.content)
     return {"resmi_kaynak":True,"kaynak":url, **page(text,baslangic)}
+
+
+def _lexpera_text(content):
+    article=BeautifulSoup(content,"html.parser").select_one(".document-content-wrapper")
+    if not article:
+        raise LookupError("İkincil kaynaktan açık metin alınamadı.")
+    return article.get_text(" ",strip=True)
+
+
+def _gazette_text(content):
+    if content.startswith(b"%PDF"):
+        return "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(content)).pages)
+    soup = BeautifulSoup(content,"html.parser")
+    for tag in soup(["head","script","style","nav","footer"]):
+        tag.decompose()
+    text = soup.get_text(" ",strip=True)
+    if not re.search(r"resm[îi]\s+gazete",text,re.I) or not re.search(r"madde|karar|tebliğ|yönetmelik",text,re.I):
+        raise LookupError("Resmî yayım metni doğrulanamadı.")
+    return text
 
 
 def literal(value):
@@ -169,13 +180,25 @@ async def aihm_karar_getir(karar_id: str, baslangic: int = 0) -> dict:
     if not re.fullmatch(r"\d{3}-\d{1,12}",karar_id):
         raise ValueError("HUDOC itemid gereklidir.")
     r=await fetch(HUDOC+"/app/conversion/docx/",params={"library":"ECHR","id":karar_id,"filename":"decision.docx"})
-    with zipfile.ZipFile(io.BytesIO(r.content)) as doc:
-        if doc.getinfo("word/document.xml").file_size > 24 * 1024 * 1024:
-            raise ValueError("HUDOC açılmış metin boyutu sınırı aşıldı.")
-        xml=ET.fromstring(doc.read("word/document.xml"))
-    ns="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-    text="\n".join("".join(t.text or "" for t in p.iter(ns+"t")) for p in xml.iter(ns+"p"))
+    text=await asyncio.to_thread(_docx_text, r.content)
     return {"id":karar_id,"kaynak":HUDOC+"/eng?i="+karar_id,**page(text,baslangic)}
+
+
+_DOCX_LIMIT = 24 * 1024 * 1024
+
+
+def _docx_text(content):
+    with zipfile.ZipFile(io.BytesIO(content)) as doc:
+        if doc.getinfo("word/document.xml").file_size > _DOCX_LIMIT:
+            raise ValueError("HUDOC açılmış metin boyutu sınırı aşıldı.")
+        # Zip başlığındaki boyut beyanına güvenmeden açılan veriyi de sınırla.
+        with doc.open("word/document.xml") as member:
+            data = member.read(_DOCX_LIMIT + 1)
+        if len(data) > _DOCX_LIMIT:
+            raise ValueError("HUDOC açılmış metin boyutu sınırı aşıldı.")
+    xml=ET.fromstring(data)
+    ns="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    return "\n".join("".join(t.text or "" for t in p.iter(ns+"t")) for p in xml.iter(ns+"p"))
 
 
 async def yoktez_ara(ifade: str, alan: Literal["tümü","tez adı","yazar","danışman","konu","anahtar kelime","özet","tez no"]="tez adı",
